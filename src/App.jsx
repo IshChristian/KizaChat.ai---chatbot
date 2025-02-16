@@ -18,8 +18,8 @@ function WithDashboard(Component) {
 export default function App() {
   return (
     <Auth0Provider
-      domain={import.meta.env.VITE_AUTH0_DOMAIN}
-      clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
+      domain={"dev-x5v0hazy1nsv3bln.us.auth0.com"}
+      clientId={"cEqSkqgLkeCrL9nIqRYkd6XtMY2LxpaJ"}
       authorizationParams={{ redirect_uri: window.location.origin }}
     >
     <Router>
