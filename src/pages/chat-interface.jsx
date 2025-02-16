@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { 
   Paperclip, 
@@ -38,12 +38,12 @@ const AuthModal = ({ isOpen, onClose }) => {
         <h2 className="text-2xl font-semibold mb-6">Sign in to continue</h2>
         
         <div className="space-y-4">
-          <a 
-            href="/login"
+          <Link 
+            to={"/login"}
             className="block w-full text-center py-3 px-4 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors"
           >
             Sign In
-          </a>
+          </Link>
           
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -54,12 +54,12 @@ const AuthModal = ({ isOpen, onClose }) => {
             </div>
           </div>
           
-          <a 
-            href="/register"
+          <Link 
+            to={"/register"}
             className="block w-full text-center py-3 px-4 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Create Account
-          </a>
+          </Link>
         </div>
       </div>
     </div>
