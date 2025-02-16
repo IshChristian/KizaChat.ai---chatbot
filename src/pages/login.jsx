@@ -48,7 +48,7 @@ export default function LoginPage() {
       console.log("Sending login request...")
 
       const response = await axios.post(
-        "http://localhost:8123/api/auth/login",
+        "https://kizachat-server.onrender.com/api/auth/login",
         formData,
         { headers: { "Content-Type": "application/json" } }
       )
@@ -96,7 +96,7 @@ export default function LoginPage() {
       if (isAuthenticated && user) {
         try {
           const token = await getAccessTokenSilently()
-          const response = await axios.get("http://localhost:8123/api/auth/login", {
+          const response = await axios.get("https://kizachat-server.onrender.com/api/auth/login", {
             headers: { Authorization: `Bearer ${token}` },
           })
 

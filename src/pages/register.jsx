@@ -39,7 +39,7 @@ export default function RegisterPage() {
 
     // Make the API call to store the user data
     try {
-      const response = await axios.post("http://localhost:8123/api/auth/register", formData) // Adjust the URL to your backend's register endpoint
+      const response = await axios.post("https://kizachat-server.onrender.com/api/auth/register", formData) // Adjust the URL to your backend's register endpoint
 
       if (response.status === 200) {
         // If registration is successful, redirect to home page
@@ -69,7 +69,7 @@ export default function RegisterPage() {
     if (isAuthenticated && user) {
       // Send user data to your backend API for storage
       try {
-        const response = await axios.post("http:localhost:8123/api/auth/register", {
+        const response = await axios.post("https://kizachat-server.onrender.com/api/auth/register", {
           name: user.name,
           email: user.email,
           password: "", // Handle this as needed (e.g., leaving it empty for social login)

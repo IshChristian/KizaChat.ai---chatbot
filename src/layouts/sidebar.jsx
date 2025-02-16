@@ -80,7 +80,7 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
 
   const handlePasswordChange = async () => {
     try {
-      await axios.put("http://localhost:8123/api/user/password", {
+      await axios.put("https://kizachat-server.onrender.com/api/user/password", {
         email: userEmail,
         currentPassword,
         newPassword
@@ -95,7 +95,7 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
 
   const handleDeleteAccount = async () => {
     try {
-      await axios.delete(`http://localhost:8123/api/user/delete/${encodeURIComponent(userEmail)}`);
+      await axios.delete(`https://kizachat-server.onrender.com/api/user/delete/${encodeURIComponent(userEmail)}`);
       document.cookie = "email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       navigate("/login");
     } catch (error) {
@@ -226,14 +226,14 @@ export default function Sidebar() {
     
     if (email) {
       axios
-        .get(`http://localhost:8123/api/chat/recent/${encodeURIComponent(email)}`)
+        .get(`https://kizachat-server.onrender.com/api/chat/recent/${encodeURIComponent(email)}`)
         .then((res) => setRecentChats(res.data.data || []))
         .catch((err) => console.error("Error fetching chats:", err));
     }
   }, []);
 
   const handleDelete = async (chatID) => {
-    await axios.delete(`http://localhost:8123/api/chat/chat/${chatID}`);
+    await axios.delete(`https://kizachat-server.onrender.com/api/chat/chat/${chatID}`);
     setRecentChats(recentChats.filter(chat => chat.chatID !== chatID));
   };
 
@@ -244,7 +244,7 @@ export default function Sidebar() {
     }
     if (searchQuery.trim() !== "" && email) {  // Ensure email is also provided
       try {
-        const response = await axios.get(`http://localhost:8123/api/chat/search/${encodeURIComponent(searchQuery)}/${email}`);
+        const response = await axios.get(`https://kizachat-server.onrender.com/api/chat/search/${encodeURIComponent(searchQuery)}/${email}`);
         setSearchResults(response.data.data || []); // Assuming the response returns a data array
       } catch (error) {
         console.error("Search error:", error);

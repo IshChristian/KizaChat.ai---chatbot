@@ -153,7 +153,7 @@ export default function ChatInterface() {
 
     try {
       const requestBody = { user_email: email || "Guest", question, chatID };
-      const response = await axios.post("http://localhost:8123/api/chat/ask", requestBody, {
+      const response = await axios.post("https://kizachat-server.onrender.com/api/chat/ask", requestBody, {
         headers: {
           "Content-Type": "application/json",
         },

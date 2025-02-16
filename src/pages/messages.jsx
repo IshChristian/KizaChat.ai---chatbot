@@ -136,7 +136,7 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    socket.current = io("http://localhost:8123");
+    socket.current = io("https://kizachat-server.onrender.com/");
     socket.current.on("newMessage", (newMessage) => {
       setMessages((prev) => [...prev, newMessage]);
     });
@@ -162,7 +162,7 @@ export default function ChatPage() {
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
-      const response = await fetch(`http://localhost:8123/api/chat/users/${chatID}`, {
+      const response = await fetch(`https://kizachat-server.onrender.com//api/chat/users/${chatID}`, {
         signal: controller.signal,
       });
 
@@ -236,7 +236,7 @@ export default function ChatPage() {
     setIsResponding(true);
 
     try {
-      const response = await axios.post("http://localhost:8123/api/chat/ask", {
+      const response = await axios.post("https://kizachat-server.onrender.com//api/chat/ask", {
         chatID,
         user_email: email || "Guest",
         question: inputMessage,
