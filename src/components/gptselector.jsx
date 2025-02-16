@@ -4,9 +4,9 @@ import { useState } from "react"
 import { X, Lock } from "lucide-react"
 
 const gptOptions = [
-  { name: "KizaChat-1", default: true, locked: false },
-  { name: "KizaChat-2", default: false, locked: true },
-  { name: "KizaChat-3", default: false, locked: true },
+  { name: "KizaChat-v1", default: true, locked: false },
+  { name: "KizaChat-v2", default: false, locked: true },
+  // { name: "KizaChat-3", default: false, locked: true },
 ]
 
 const GptSelectorModal = ({ onClose }) => {

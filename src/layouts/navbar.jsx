@@ -20,13 +20,14 @@ const Navbar = () => {
             <Users className="w-5 h-5 mr-2" />
             Select GPT
           </button>
-          <button
+          {/* <button
             onClick={() => setIsPricingModalOpen(true)}
             className="bg-transparent text-black px-4 py-2 rounded-md border border-black hover:bg-black hover:text-white transition-colors flex items-center"
           >
             <Settings className="w-5 h-5 mr-2" />
             Upgrade Plan
-          </button>
+          </button> */}
+          <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Buy for me domain', '#0a0c0f', 'F1F81AO5MB');kofiwidget2.draw();</script> 
         </div>
       </div>
       {isPricingModalOpen && <PricingModal onClose={() => setIsPricingModalOpen(false)} />}
