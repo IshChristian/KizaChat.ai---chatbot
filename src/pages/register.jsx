@@ -95,7 +95,7 @@ export default function RegisterPage() {
   const description = `Join KizaChat.ai and experience the future of intelligent conversations. Our platform offers advanced AI-powered communication, personalized interactions, and cutting-edge language processing. Start your journey with us today and transform the way you connect and communicate.`
 
   return (
-    <div xclassName="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div xclassName="flex w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="flex w-full max-w-6xl mx-auto shadow-2xl overflow-hidden">
         {/* Left side - Image and Description */}
         <div className="hidden lg:block lg:w-1/2 relative bg-blue-600">
@@ -118,7 +118,7 @@ export default function RegisterPage() {
           <div className="w-full mx-auto">
           <div className="mb-6">
               <img
-                src="png/white-logo.PNG" // Add your desired image here
+                src="png/white-logo.png" // Add your desired image here
                 alt="Login Banner"
                 className="w-full h-auto object-cover rounded-lg"
               />

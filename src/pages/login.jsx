@@ -139,7 +139,7 @@ export default function LoginPage() {
           <div className="max-w-sm w-full mx-auto">
             <div className="mb-6">
               <img
-                src="png/white-logo.PNG" // Add your desired image here
+                src="png/white-logo.png" // Add your desired image here
                 alt="Login Banner"
                 className="w-full h-auto object-cover rounded-lg"
               />

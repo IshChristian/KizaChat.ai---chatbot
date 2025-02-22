@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { X, Plus, Search, Clock, User, MoreVertical, Trash, LogOut, Lock, FileText, AlertTriangle } from "lucide-react";
+import { X, Plus, Search, Clock, User, MoreVertical, Trash, LogOut, Lock, FileText, AlertTriangle, Menu } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
 // Auth Modal Component
 const AuthModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -47,6 +46,8 @@ const AuthModal = ({ isOpen, onClose }) => {
     </div>
   );
 };
+
+
 
 const sidebarItems = [
   { Icon: Plus, name: "New Chat", path: "/" },
@@ -203,16 +204,16 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
 
 export default function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [recentChats, setRecentChats] = useState([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
   const [visibleChats, setVisibleChats] = useState(5);
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
+
+ 
 
   useEffect(() => {
     const getEmailFromCookies = () => {
@@ -230,149 +231,143 @@ export default function Sidebar() {
         .then((res) => setRecentChats(res.data.data || []))
         .catch((err) => console.error("Error fetching chats:", err));
     }
-  }, []);
+    const handleClickOutside = (event) => {
+      const sidebar = document.getElementById('sidebar');
+      const menuButton = document.getElementById('menu-button');
+      if (isMobileMenuOpen && sidebar && !sidebar.contains(event.target) && !menuButton.contains(event.target)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+  
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+}, [isMobileMenuOpen]);
 
   const handleDelete = async (chatID) => {
     await axios.delete(`https://kizachat-server.onrender.com/api/chat/chat/${chatID}`);
     setRecentChats(recentChats.filter(chat => chat.chatID !== chatID));
   };
 
-  const handleSearch = async () => {
-    if (!email) {
-      setShowAuthModal(true);
-      return;
-    }
-    if (searchQuery.trim() !== "" && email) {  // Ensure email is also provided
-      try {
-        const response = await axios.get(`https://kizachat-server.onrender.com/api/chat/search/${encodeURIComponent(searchQuery)}/${email}`);
-        setSearchResults(response.data.data || []); // Assuming the response returns a data array
-      } catch (error) {
-        console.error("Search error:", error);
-      }
-    }
-  };
-  
-
-  // const formatDate = (dateString) => {
-  //   const date = new Date(dateString);
-  //   return format(date, 'MMM dd, yyyy HH:mm');
-  // };
-
   const handleLogout = () => {
     document.cookie = "email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     navigate("/login");
   };
 
+  const handleAuthAction = () => {
+    if (userEmail) {
+      handleLogout();
+    } else {
+      navigate("/login");
+    }
+  };
+
   return (
     <>
-      <div
-  className={`bg-white border-r flex flex-col items-start py-4 transition-all duration-300 ${isExpanded ? "w-64" : "w-16"}`}
-  onMouseEnter={() => setIsExpanded(true)}
-  onMouseLeave={() => setIsExpanded(false)}
->
-  <div className="w-full px-4 mb-6 flex items-center justify-center">
-    <img 
-      src={isExpanded ? "/png/white-logo.PNG" : "/png/logo-gorilla.PNG"} 
-      alt="Logo" 
-      className={isExpanded ? "h-8" : "h-8 w-8"} 
-    />
-  </div>
-
-  <div className="w-full px-2 space-y-2">
-    {sidebarItems.map((item, index) => (
-      <SidebarButton key={index} Icon={item.Icon} name={item.name} isExpanded={isExpanded} onClick={() => navigate(item.path || "#")} />
-    ))}
+    {/* Mobile Menu Button */}
     <button
-  onClick={() => setShowSearchModal(true)}  // This should toggle the modal visibility
-  className="w-full flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
->
-  <Search className="h-5 w-5" />
-  {isExpanded && <span className="ml-2 text-sm">Search</span>}
-</button>
-  </div>
+      id="menu-button"
+      className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md md:hidden"
+      onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+    >
+      {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+    </button>
 
-  {isExpanded && (
-    <div className="w-full px-2 mt-6 space-y-2 flex-grow overflow-auto">
-      <p className="text-xs font-semibold text-gray-500 mb-2 px-2">Recent Chats</p>
-      <div className="space-y-2">
-        {recentChats.slice(0, visibleChats).map((chat, index) => (
-          <ChatItem key={index} chat={chat} onDelete={handleDelete} />
+    {/* Sidebar */}
+    <div
+      id="sidebar"
+      className={`fixed top-0 left-0 h-full bg-white border-r flex flex-col items-start py-4 transition-all duration-300 z-50
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          ${isExpanded ? 'md:w-64' : 'md:w-16'}
+          ${isMobileMenuOpen ? 'w-1/2' : 'w-16'}`}
+      onMouseEnter={() => !isMobileMenuOpen && setIsExpanded(true)}
+      onMouseLeave={() => !isMobileMenuOpen && setIsExpanded(false)}
+    >
+      <div className="w-full px-4 mb-6 flex items-center justify-center mt-4 md:mt-0">
+        <img 
+          src={isExpanded || isMobileMenuOpen ? "/png/white-logo.png" : "/png/logo-gorilla.png"} 
+          alt="Logo" 
+          className={isExpanded || isMobileMenuOpen ? "h-8" : "h-8 w-8"} 
+        />
+      </div>
+
+      <div className="w-full px-2 space-y-2">
+        {sidebarItems.map((item, index) => (
+          <SidebarButton 
+            key={index} 
+            Icon={item.Icon} 
+            name={item.name} 
+            isExpanded={isExpanded || isMobileMenuOpen} 
+            onClick={() => {
+              navigate(item.path || "#");
+              setIsMobileMenuOpen(false);
+            }} 
+          />
         ))}
       </div>
-      {visibleChats < recentChats.length && (
-        <button 
-          onClick={() => setVisibleChats(visibleChats + 5)}
-          className="w-full mt-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          Load More
-        </button>
-      )}
-    </div>
-  )}
 
-  <div className="w-full px-2 mt-auto space-y-2">
-    <SidebarButton Icon={User} name="Profile" isExpanded={isExpanded} onClick={() => setShowProfilePanel(true)} />
-    <button onClick={handleLogout} className="w-full flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-      <LogOut className="h-5 w-5" />
-      {isExpanded && <span className="ml-2 text-sm">Logout</span>}
-    </button>
-  </div>
-</div>
-
-
-      <ProfilePanel 
-        isOpen={showProfilePanel} 
-        onClose={() => setShowProfilePanel(false)}
-        userEmail={userEmail}
-      />
-
-{showSearchModal && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-    <div className="bg-white p-4 rounded-lg shadow-lg text-center w-96">
-      <button onClick={() => setShowSearchModal(false)} className="absolute top-2 right-2">
-        <X className="h-6 w-6 text-white" />
-      </button>
-      <h2 className="text-lg font-semibold mb-4">Search Chats</h2>
-      <input
-        type="text"
-        placeholder="Search by question..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
-      />
-      <button
-        onClick={handleSearch}
-        className="w-full bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors mb-4"
-      >
-        Search
-      </button>
-
-      {/* Display search results */}
-      {searchResults.length > 0 ? (
-        <div className="space-y-2">
-          {searchResults.map((chat, index) => (
-            <div
-              key={index}
-              className="bg-white p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer justify-between items-center"
-              onClick={() => navigate(`/chat/${chat.chatID}`)}
+      {(isExpanded || isMobileMenuOpen) && (
+        <div className="w-full px-2 mt-6 space-y-2 flex-grow overflow-auto">
+          <p className="text-xs font-semibold text-gray-500 mb-2 px-2">Recent Chats</p>
+          <div className="space-y-2">
+            {recentChats.slice(0, visibleChats).map((chat, index) => (
+              <ChatItem key={index} chat={chat} onDelete={handleDelete} />
+            ))}
+          </div>
+          {visibleChats < recentChats.length && (
+            <button 
+              onClick={() => setVisibleChats(visibleChats + 5)}
+              className="w-full mt-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <div className="text-sm text-gray-500 mb-1">{chat.date}</div>
-              <div className="font-semibold truncate mb-1">{chat.question}</div>
-            </div>
-          ))}
+              Load More
+            </button>
+          )}
         </div>
-      ) : (
-        <p className="text-sm text-gray-500">No results found</p>
       )}
-    </div>
-  </div>
-)}
- {/* Auth Modal */}
- <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
-      /> 
 
-    </>
+      <div className="w-full px-2 mt-auto space-y-2">
+        {userEmail && (
+          <SidebarButton 
+            Icon={User} 
+            name="Profile" 
+            isExpanded={isExpanded || isMobileMenuOpen} 
+            onClick={() => {
+              setShowProfilePanel(true);
+              setIsMobileMenuOpen(false);
+            }} 
+          />
+        )}
+        <SidebarButton 
+          Icon={LogOut} 
+          name={userEmail ? "Logout" : "Login"} 
+          isExpanded={isExpanded || isMobileMenuOpen} 
+          onClick={() => {
+            handleAuthAction();
+            setIsMobileMenuOpen(false);
+          }}
+          className={userEmail ? "text-red-600" : "text-gray-700"}
+        />
+      </div>
+    </div>
+
+    {/* Overlay for mobile */}
+    {isMobileMenuOpen && (
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+    )}
+
+    <ProfilePanel 
+      isOpen={showProfilePanel} 
+      onClose={() => setShowProfilePanel(false)}
+      userEmail={userEmail}
+    />
+
+    <AuthModal 
+      isOpen={showAuthModal} 
+      onClose={() => setShowAuthModal(false)} 
+    />
+  </>
   );
 }

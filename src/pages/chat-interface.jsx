@@ -170,76 +170,73 @@ export default function ChatInterface() {
   };
 
   return (
-    <>
-      <div className="flex-1 max-w-4xl mx-auto px-8 py-12">
-        <div className="space-y-2 mb-8">
-          <h1 className="text-4xl font-semibold">
-            Hi there, <span className="bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">{email || "Guest"}</span>
-          </h1>
-          <h2 className="text-3xl font-semibold">
-            What <span className="bg-gradient-to-r from-purple-600 via-purple-400 to-blue-500 bg-clip-text text-transparent">would you like to know?</span>
-          </h2>
-          <p className="text-gray-600 text-sm">Click on any suggestion or type your own question to begin</p>
-        </div>
+    <div className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 max-w-4xl">
+      <div className="space-y-2 mb-6">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold">
+          Hi there, <span className="bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">{email || "Guest"}</span>
+        </h1>
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold">
+          What <span className="bg-gradient-to-r from-purple-600 via-purple-400 to-blue-500 bg-clip-text text-transparent">would you like to know?</span>
+        </h2>
+        <p className="text-gray-600 text-xs sm:text-sm">Click on any suggestion or type your own question to begin</p>
+      </div>
 
-        {/* Suggestion Cards Grid */}
-        <div className={`grid grid-cols-2 gap-4 mb-8 transition-opacity duration-300 ${isRefreshing ? 'opacity-0' : 'opacity-100'}`}>
-          {displayedSuggestions.map((suggestion, index) => (
-            <SuggestionCard
-              key={index}
-              Icon={suggestion.icon}
-              text={suggestion.text}
-              onClick={() => handleSuggestionClick(suggestion.text)}
-              className="cursor-pointer hover:scale-102 transition-transform"
-            />
-          ))}
-        </div>
+      {/* Responsive Suggestion Cards Grid */}
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 transition-opacity duration-300 ${isRefreshing ? 'opacity-0' : 'opacity-100'}`}>
+        {displayedSuggestions.map((suggestion, index) => (
+          <SuggestionCard
+            key={index}
+            Icon={suggestion.icon}
+            text={suggestion.text}
+            onClick={() => handleSuggestionClick(suggestion.text)}
+            className="cursor-pointer hover:scale-102 transition-transform"
+          />
+        ))}
+      </div>
 
-        {/* Refresh Button */}
-        <div className="flex justify-center mb-8">
+      {/* Refresh Button */}
+      <div className="flex justify-center mb-6">
+        <button 
+          onClick={handleRefreshSuggestions}
+          disabled={isRefreshing}
+          className="text-gray-600 border rounded-lg px-3 py-1.5 flex items-center hover:bg-gray-50 transition-colors text-sm"
+        >
+          <RefreshCcw className={`h-3 w-3 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh Prompts
+        </button>
+      </div>
+
+      {/* Responsive Input Area */}
+      <form onSubmit={handleQuestionSubmit} className="relative">
+        <textarea 
+          placeholder="Ask whatever you want..." 
+          className="w-full pl-3 pr-20 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:outline-none resize-none text-sm sm:text-base h-20"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+        />
+        <div className="absolute right-2 bottom-2 flex items-center space-x-1.5">
+          <button type="button" className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg">
+            <Paperclip className="h-4 w-4" />
+          </button>
+          <button type="button" className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg">
+            <ImageIcon className="h-4 w-4" />
+          </button>
+          <div className="w-px h-5 bg-gray-200" />
+          <span className="text-xs text-gray-400">{question.length}/1000</span>
           <button 
-            onClick={handleRefreshSuggestions}
-            disabled={isRefreshing}
-            className="text-gray-600 border rounded-lg px-4 py-2 flex items-center hover:bg-gray-50 transition-colors"
+            type="submit" 
+            className="rounded-lg bg-purple-600 hover:bg-purple-700 p-1.5 text-white transition-colors"
+            disabled={!question.trim()}
           >
-            <RefreshCcw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh Prompts
+            <Send className="h-3 w-3" />
           </button>
         </div>
+      </form>
 
-        {/* Input Area */}
-        <form onSubmit={handleQuestionSubmit} className="relative">
-          <input 
-            type="text" 
-            placeholder="Ask whatever you want..." 
-            className="w-full pl-4 pr-24 py-6 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:outline-none" 
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-          />
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-            <button type="button" className="text-gray-400 hover:text-gray-600 p-2 rounded-lg">
-              <Paperclip className="h-5 w-5" />
-            </button>
-            <button type="button" className="text-gray-400 hover:text-gray-600 p-2 rounded-lg">
-              <ImageIcon className="h-5 w-5" />
-            </button>
-            <div className="w-px h-6 bg-gray-200" />
-            <span className="text-xs text-gray-400">{question.length}/1000</span>
-            <button 
-              type="submit" 
-              className="rounded-lg bg-purple-600 hover:bg-purple-700 p-2 text-white transition-colors"
-              disabled={!question.trim()}
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </div>
-        </form>
-        {/* Auth Modal */}
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
       />
-      </div>
-    </>
+    </div>
   );
 }
