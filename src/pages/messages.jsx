@@ -445,40 +445,36 @@ export default function ChatPage() {
       <div className="fixed bottom-0 left-0 right-0 border-t bg-white p-4">
         {showScrollButton && <ScrollToBottomButton onClick={scrollToBottom} />}
         <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative">
-          <textarea
-            value={inputMessage}
-            onChange={handleInputChange}
-            placeholder="Type your message..."
-            className="w-full pl-4 pr-24 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-600 focus:outline-none resize-none overflow-hidden"
-            style={{
-              minHeight: "56px",
-              maxHeight: "200px",
-              height: inputMessage.trim() ? "auto" : "56px",
-            }}
-            rows={1}
-            disabled={isResponding}
-            aria-label="Message input"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleSendMessage(e)
-              }
-            }}
-          />
-          <span className="absolute left-4 bottom-2 text-xs text-gray-500" aria-label="Character count">
-            {inputMessage.length}/1000
-          </span>
-          <button
-            type="submit"
-            className={`absolute right-2 top-2 rounded-xl ${
-              isResponding ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
-            } p-3 text-white transition-colors focus:outline-none`}
-            disabled={isResponding || !inputMessage.trim()}
-            aria-label={isResponding ? "Sending message..." : "Send message"}
-          >
-            <Send className="h-5 w-5" />
-          </button>
-        </form>
+  <input
+    type="text"
+    value={inputMessage}
+    onChange={handleInputChange}
+    placeholder="Type your message..."
+    className="w-full pl-4 pr-24 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-600 focus:outline-none"
+    disabled={isResponding}
+    aria-label="Message input"
+    onKeyDown={(e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault()
+        handleSendMessage(e)
+      }
+    }}
+  />
+  
+  <button
+    type="submit"
+    className={`absolute right-2 top-2 rounded-xl ${
+      isResponding ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
+    } p-3 text-white transition-colors focus:outline-none`}
+    disabled={isResponding || !inputMessage.trim()}
+    aria-label={isResponding ? "Sending message..." : "Send message"}
+  >
+    <Send className="h-5 w-5" />
+  </button>
+</form>
+<span className="left-4 mt-4 text-xs text-gray-500" aria-label="Character count">
+    {inputMessage.length}/1000
+  </span>
       </div>
     </div>
   )

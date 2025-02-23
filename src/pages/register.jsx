@@ -40,9 +40,11 @@ export default function RegisterPage() {
     // Make the API call to store the user data
     try {
       const response = await axios.post("https://kizachat-server.onrender.com/api/auth/register", formData) // Adjust the URL to your backend's register endpoint
-
       if (response.status === 200) {
-        // If registration is successful, redirect to home page
+        // Store email in a cookie (expires in 7 days)
+        document.cookie = `email=${formData.email}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+  
+        // Redirect to home page
         navigate("/");
       }
     } catch (error) {
@@ -75,10 +77,14 @@ export default function RegisterPage() {
           password: "", // Handle this as needed (e.g., leaving it empty for social login)
         })
         
-        if (response.status === 200) {
-          // Successful registration, redirect to homepage
-          navigate("/");
-        }
+        
+    if (response.status === 200) {
+      // Store email in a cookie (expires in 7 days)
+      document.cookie = `email=${formData.email}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+
+      // Redirect to home page
+      navigate("/");
+    }
       } catch (error) {
         console.error("Failed to store data in the backend", error)
       }
@@ -96,7 +102,7 @@ export default function RegisterPage() {
 
   return (
     <div xclassName="flex w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="flex w-full max-w-6xl mx-auto shadow-2xl overflow-hidden">
+      <div className="flex w-full shadow-2xl overflow-hidden">
         {/* Left side - Image and Description */}
         <div className="hidden lg:block lg:w-1/2 relative bg-blue-600">
           <img

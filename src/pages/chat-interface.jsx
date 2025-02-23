@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { 
-  Paperclip, 
-  ImageIcon, 
   Send, 
   RefreshCcw, 
   Clock, 
@@ -20,8 +18,7 @@ import {
 } from "lucide-react";
 import SuggestionCard from "../components/suggested";
 
-
-// Auth Modal Component
+// ... AuthModal component remains the same ...
 const AuthModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
@@ -66,7 +63,6 @@ const AuthModal = ({ isOpen, onClose }) => {
   );
 };
 
-// List of all possible suggestions with their icons
 const allSuggestions = [
   { icon: Clock, text: "Write a to-do list for a personal project or task" },
   { icon: Settings, text: "Generate an email to reply to a job offer" },
@@ -98,24 +94,23 @@ export default function ChatInterface() {
   const [displayedSuggestions, setDisplayedSuggestions] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+  const inputRef = useRef(null);
 
-  // Initialize suggestions and get email from cookies
   useEffect(() => {
-    setDisplayedSuggestions(getRandomSuggestions());
-    const cookies = document.cookie.split("; ");
-    const emailCookie = cookies.find((row) => row.startsWith("email="));
-    if (emailCookie) {
-      setEmail(decodeURIComponent(emailCookie.split("=")[1]));
-    }
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Get random suggestions
   const getRandomSuggestions = () => {
     const shuffled = [...allSuggestions].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 6); // Show 6 suggestions at a time
+    return shuffled.slice(0, isMobile ? 2 : 6);
   };
 
-  // Initialize suggestions and get email from cookies
   useEffect(() => {
     setDisplayedSuggestions(getRandomSuggestions());
     const cookies = document.cookie.split("; ");
@@ -123,17 +118,21 @@ export default function ChatInterface() {
     if (emailCookie) {
       setEmail(decodeURIComponent(emailCookie.split("=")[1]));
     }
-  }, []);
+  }, [isMobile]);
 
-  // Handle suggestion click
   const handleSuggestionClick = (suggestionText) => {
-    setQuestion(suggestionText);
+    // Update the input value directly through the ref
+    if (inputRef.current) {
+      inputRef.current.value = suggestionText;
+      // Also update the state to keep it in sync
+      setQuestion(suggestionText);
+      // Focus the input
+      inputRef.current.focus();
+    }
   };
 
-  // Handle refresh suggestions
   const handleRefreshSuggestions = () => {
     setIsRefreshing(true);
-    // Animate out
     setTimeout(() => {
       setDisplayedSuggestions(getRandomSuggestions());
       setIsRefreshing(false);
@@ -170,73 +169,67 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 max-w-4xl">
-      <div className="space-y-2 mb-6">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold">
-          Hi there, <span className="bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">{email || "Guest"}</span>
-        </h1>
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold">
-          What <span className="bg-gradient-to-r from-purple-600 via-purple-400 to-blue-500 bg-clip-text text-transparent">would you like to know?</span>
-        </h2>
-        <p className="text-gray-600 text-xs sm:text-sm">Click on any suggestion or type your own question to begin</p>
-      </div>
+    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-full">
+      <div className="w-full max-w-4xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+        <div className="space-y-2 mb-6 text-center">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold">
+            Hi there, <span className="bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">{email || "Guest"}</span>
+          </h1>
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold">
+            What <span className="bg-gradient-to-r from-purple-600 via-purple-400 to-blue-500 bg-clip-text text-transparent">would you like to know?</span>
+          </h2>
+          <p className="text-gray-600 text-xs sm:text-sm">Click on any suggestion or type your own question to begin</p>
+        </div>
 
-      {/* Responsive Suggestion Cards Grid */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 transition-opacity duration-300 ${isRefreshing ? 'opacity-0' : 'opacity-100'}`}>
-        {displayedSuggestions.map((suggestion, index) => (
-          <SuggestionCard
-            key={index}
-            Icon={suggestion.icon}
-            text={suggestion.text}
-            onClick={() => handleSuggestionClick(suggestion.text)}
-            className="cursor-pointer hover:scale-102 transition-transform"
-          />
-        ))}
-      </div>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6 transition-opacity duration-300 ${isRefreshing ? 'opacity-0' : 'opacity-100'}`}>
+          {displayedSuggestions.map((suggestion, index) => (
+            <SuggestionCard
+              key={index}
+              Icon={suggestion.icon}
+              text={suggestion.text}
+              onClick={() => handleSuggestionClick(suggestion.text)}
+              className="cursor-pointer hover:scale-102 transition-transform"
+            />
+          ))}
+        </div>
 
-      {/* Refresh Button */}
-      <div className="flex justify-center mb-6">
-        <button 
-          onClick={handleRefreshSuggestions}
-          disabled={isRefreshing}
-          className="text-gray-600 border rounded-lg px-3 py-1.5 flex items-center hover:bg-gray-50 transition-colors text-sm"
-        >
-          <RefreshCcw className={`h-3 w-3 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh Prompts
-        </button>
-      </div>
-
-      {/* Responsive Input Area */}
-      <form onSubmit={handleQuestionSubmit} className="relative">
-        <textarea 
-          placeholder="Ask whatever you want..." 
-          className="w-full pl-3 pr-20 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:outline-none resize-none text-sm sm:text-base h-20"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-        />
-        <div className="absolute right-2 bottom-2 flex items-center space-x-1.5">
-          <button type="button" className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg">
-            <Paperclip className="h-4 w-4" />
-          </button>
-          <button type="button" className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg">
-            <ImageIcon className="h-4 w-4" />
-          </button>
-          <div className="w-px h-5 bg-gray-200" />
-          <span className="text-xs text-gray-400">{question.length}/1000</span>
+        <div className="flex justify-center mb-6">
           <button 
-            type="submit" 
-            className="rounded-lg bg-purple-600 hover:bg-purple-700 p-1.5 text-white transition-colors"
-            disabled={!question.trim()}
+            onClick={handleRefreshSuggestions}
+            disabled={isRefreshing}
+            className="text-gray-600 border rounded-lg px-3 py-1.5 flex items-center hover:bg-gray-50 transition-colors text-sm"
           >
-            <Send className="h-3 w-3" />
+            <RefreshCcw className={`h-3 w-3 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh Prompts
           </button>
         </div>
-      </form>
 
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
-      />
+        <form onSubmit={handleQuestionSubmit} className="relative w-full">
+          <div className="relative">
+            <input 
+              ref={inputRef}
+              type="text"
+              placeholder="Ask whatever you want..." 
+              className="w-full pl-3 pr-12 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:outline-none text-sm sm:text-base bg-white"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+            />
+            <button 
+              type="submit" 
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-purple-600 hover:bg-purple-700 p-1.5 text-white transition-colors"
+              disabled={!question.trim()}
+            >
+              <Send className="h-3 w-3" />
+            </button>
+          </div>
+          <span className="absolute left-0 -bottom-6 text-xs text-gray-400">{question.length}/1000</span>
+        </form>
+
+        <AuthModal 
+          isOpen={showAuthModal} 
+          onClose={() => setShowAuthModal(false)} 
+        />
+      </div>
     </div>
   );
 }

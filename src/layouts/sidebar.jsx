@@ -107,7 +107,7 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed z-10 inset-y-0 right-0 w-80 bg-white border-l shadow-lg p-4 overflow-y-auto">
+    <div className="fixed z-50 inset-y-0 right-0 w-80 bg-white border-l shadow-lg p-4 overflow-y-auto">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Profile Settings</h2>
         <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
@@ -267,7 +267,7 @@ export default function Sidebar() {
     {/* Mobile Menu Button */}
     <button
       id="menu-button"
-      className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md md:hidden"
+      className="fixed top-4 left-4 z-40 p-2 bg-white rounded-lg shadow-md md:hidden"
       onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
     >
       {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

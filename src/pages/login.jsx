@@ -116,106 +116,97 @@ export default function LoginPage() {
   const description = `Welcome to KizaChat.ai, your gateway to intelligent conversations. Our advanced AI-powered platform offers seamless communication, personalized interactions, and cutting-edge language processing.`
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="flex w-full max-w-6xl mx-auto shadow-2xl overflow-hidden">
-        {/* Left side - Image and Description */}
-        <div className="hidden lg:block lg:w-1/2 relative bg-blue-600">
-          <img
-            src="https://images.unsplash.com/photo-1655635643532-fa9ba2648cbe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-            alt="AI Chat Background"
-            className="absolute inset-0 h-full w-full object-cover opacity-50"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-blue-900 to-transparent"></div>
-          <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-            <h1 className="text-4xl font-bold mb-4">
-              Welcome to <AnimatedLogo />
-            </h1>
-            <AnimatedText text={description} className="text-sm leading-relaxed" />
-          </div>
-        </div>
-
-        {/* Right side - Login Form */}
-        <div className="w-full lg:w-1/2 bg-white p-8 lg:p-12 flex flex-col justify-center">
-          <div className="max-w-sm w-full mx-auto">
-            <div className="mb-6">
-              <img
-                src="png/white-logo.png" // Add your desired image here
-                alt="Login Banner"
-                className="w-full h-auto object-cover rounded-lg"
-              />
-            </div>
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Sign in to your account</h2>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={isLoading}
-                />
-                {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  disabled={isLoading}
-                />
-                {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  {isLoading ? "Signing in..." : "Sign in"}
-                </button>
-              </div>
-            </form>
-
-            {/* Google Sign-In Button */}
-            <div className="mt-6">
-            <button
-                  onClick={handleGoogleSignIn}
-                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z" />
-                  </svg>
-                  Sign up with Google
-                </button>
-            </div>
-
-            <p className="mt-8 text-center text-sm text-gray-600">
-              Don't have an account?{" "}
-              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign up
-              </Link>
-            </p>
-          </div>
-        </div>
+    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-full">
+  <div className="flex w-full shadow-2xl overflow-hidden">
+    {/* Left side - Image and Description */}
+    <div className="hidden lg:flex w-1/2 relative bg-blue-600">
+      <img
+        src="https://images.unsplash.com/photo-1655635643532-fa9ba2648cbe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+        alt="AI Chat Background"
+        className="absolute inset-0 h-full w-full object-cover opacity-50"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-blue-900 to-transparent"></div>
+      <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+        <h1 className="text-4xl font-bold mb-4">Welcome to <AnimatedLogo /></h1>
+        <AnimatedText text={description} className="text-sm leading-relaxed" />
       </div>
     </div>
+
+    {/* Right side - Login Form */}
+    <div className="w-1/2 bg-white p-8 lg:p-12 flex flex-col justify-center">
+      <div className="max-w-sm w-full mx-auto">
+        <div className="mb-6">
+          <img
+            src="png/white-logo.png"
+            alt="Login Banner"
+            className="w-full h-auto object-cover rounded-lg"
+          />
+        </div>
+        <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Sign in to your account</h2>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              disabled={isLoading}
+            />
+            {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              disabled={isLoading}
+            />
+            {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              {isLoading ? "Signing in..." : "Sign in"}
+            </button>
+          </div>
+        </form>
+
+        <div className="mt-6">
+          <button
+            onClick={handleGoogleSignIn}
+            className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z" />
+            </svg>
+            Sign up with Google
+          </button>
+        </div>
+
+        <p className="mt-8 text-center text-sm text-gray-600">
+          Don't have an account? <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">Sign up</Link>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
   )
 }
