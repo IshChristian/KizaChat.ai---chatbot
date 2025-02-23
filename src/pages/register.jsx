@@ -4,6 +4,7 @@ import axios from "axios" // Use Axios for HTTP requests
 import { Link, useNavigate } from "react-router-dom"
 import AnimatedText from "../components/animation-text"
 import AnimatedLogo from "../components/animation-logo"
+import { GoogleLogin } from '@react-oauth/google'; // Import the GoogleLogin component
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -54,54 +55,35 @@ export default function RegisterPage() {
     }
   }
 
-  const handleGoogleSignUp = async () => {
+  const handleGoogleResponse = async (response) => {
+    const { credential } = response;
+
+    // Send the Google credential token to your backend for user registration
     try {
-      // Login using Google via Auth0
-      await loginWithRedirect({
-        connection: "google", // Specifying the Google connection
-        redirectUri: window.location.origin, // Redirect to the current page after login
-      })
-    } catch (error) {
-      console.error("Google login failed", error)
-    }
-  }
+      const googleData = {
+        email: response.profileObj.email,
+        name: response.profileObj.name,
+        password: "", // Handle this as needed for social login
+      };
+      const registerResponse = await axios.post("https://kizachat-server.onrender.com/api/auth/register", googleData);
+      
+      if (registerResponse.status === 200) {
+        // Store email in a cookie (expires in 7 days)
+        document.cookie = `email=${googleData.email}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
 
-  const handleAuth0Callback = async () => {
-    // Check if user is authenticated
-    if (isAuthenticated && user) {
-      // Send user data to your backend API for storage
-      try {
-        const response = await axios.post("https://kizachat-server.onrender.com/api/auth/register", {
-          name: user.name,
-          email: user.email,
-          password: "", // Handle this as needed (e.g., leaving it empty for social login)
-        })
-        
-        
-    if (response.status === 200) {
-      // Store email in a cookie (expires in 7 days)
-      document.cookie = `email=${formData.email}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
-
-      // Redirect to home page
-      navigate("/");
-    }
-      } catch (error) {
-        console.error("Failed to store data in the backend", error)
+        // Redirect to home page
+        navigate("/");
       }
+    } catch (error) {
+      console.error("Google login failed", error);
+      setErrors({ submit: "Google login failed. Please try again." });
     }
   }
-
-  // Run Auth0 callback handler if it's the redirect callback page
-  useEffect(() => {
-    if (window.location.search.includes("code") && window.location.search.includes("state")) {
-      handleAuth0Callback()
-    }
-  }, [isAuthenticated, user])
 
   const description = `Join KizaChat.ai and experience the future of intelligent conversations. Our platform offers advanced AI-powered communication, personalized interactions, and cutting-edge language processing. Start your journey with us today and transform the way you connect and communicate.`
 
   return (
-    <div xclassName="flex w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="flex w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="flex w-full shadow-2xl overflow-hidden">
         {/* Left side - Image and Description */}
         <div className="hidden lg:block lg:w-1/2 relative bg-blue-600">
@@ -122,13 +104,6 @@ export default function RegisterPage() {
         {/* Right side - Registration Form */}
         <div className="w-full lg:w-1/2 bg-white p-8 lg:p-12 flex flex-col justify-center">
           <div className="w-full mx-auto">
-          <div className="mb-6">
-              <img
-                src="png/white-logo.png" // Add your desired image here
-                alt="Login Banner"
-                className="w-full h-auto object-cover rounded-lg"
-              />
-            </div>
             <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Create your account</h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -169,7 +144,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                 Password
+                  Password
                 </label>
                 <input
                   id="password"
@@ -183,22 +158,6 @@ export default function RegisterPage() {
                   disabled={isLoading}
                 />
                 {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
-              </div>
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="confirmPassword"
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  disabled={isLoading}
-                />
               </div>
 
               <div>
@@ -230,15 +189,12 @@ export default function RegisterPage() {
               </div>
 
               <div className="mt-6">
-                <button
-                  onClick={handleGoogleSignUp}
-                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z" />
-                  </svg>
-                  Sign up with Google
-                </button>
+                <GoogleLogin
+                  onSuccess={handleGoogleResponse}
+                  onError={() => console.log("Google login failed")}
+                  useOneTap
+                  shape="rectangular"
+                />
               </div>
             </div>
 
