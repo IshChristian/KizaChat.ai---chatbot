@@ -96,7 +96,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-full">
       <div className="flex w-full shadow-2xl overflow-hidden">
-        {/* Left side - Image and Description */}
+        {/* Left side - Image and Description (hidden on small devices) */}
         <div className="hidden lg:flex w-1/2 relative bg-blue-600">
           <img
             src="https://images.unsplash.com/photo-1655635643532-fa9ba2648cbe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
@@ -110,8 +110,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Right side - Login Form */}
-        <div className="w-1/2 bg-white p-8 lg:p-12 flex flex-col justify-center">
+        {/* Right side - Login Form (Responsive) */}
+        <div className="w-full lg:w-1/2 bg-white p-8 lg:p-12 flex flex-col justify-center">
           <div className="max-w-sm w-full mx-auto">
             <div className="mb-6">
               <img
@@ -167,13 +167,14 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-6">
-              <GoogleLogin
-                clientId={CLIENT_ID}
-                buttonText="Sign up with Google"
-                onSuccess={handleGoogleResponse}
-                onFailure={handleGoogleResponse}
-                cookiePolicy="single_host_origin"
-              />
+            <GoogleLogin
+  clientId={CLIENT_ID}
+  buttonText="Sign in with Google"
+  onSuccess={handleGoogleResponse}
+  onFailure={handleGoogleResponse}
+  cookiePolicy="single_host_origin"
+  scope="openid profile email"
+/>
             </div>
 
             <p className="mt-8 text-center text-sm text-gray-600">
@@ -185,3 +186,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
