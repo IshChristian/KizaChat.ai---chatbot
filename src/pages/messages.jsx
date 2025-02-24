@@ -136,7 +136,7 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage }) => {
   }
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start items-start"} my-4 ml-8`}>
+    <div className={`flex ${isUser ? "justify-end" : "justify-start items-start"} my-4 ml-8 md:ml-1 sm:ml-1`}>
       {!isUser && (
         <div className="mr-3">
           <img src="/png/logo-gorilla.png" alt="AI Assistant" width={40} height={40} className="rounded-full" />
