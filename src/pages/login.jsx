@@ -69,27 +69,23 @@ export default function LoginPage() {
   // Handle Google Sign-In response
   const handleGoogleResponse = async (response) => {
     try {
-      const { tokenId } = response;
-      
-      // Send the token to your server for validation
+      const { credential } = response; // Correct way to get the Google token
+  
+      // Send token to your backend for verification
       const res = await axios.post(
         "https://kizachat-server.onrender.com/api/auth/google-login",
-        { token: tokenId }
+        { token: credential }
       );
-      
+  
       const data = res.data;
-      
-      if (data.message === "Google Login successful") {
-        setCookie("_id", data._id, 50); // Store user info in cookies
-        setCookie("email", data.email, 7);
-        navigate("/");
-      } else {
-        setErrors({ submit: "Google Sign-In failed. Please try again." });
-      }
+      setCookie("_id", data._id, 50); // Store user ID in cookies
+      setCookie("email", data.email, 7);
+      navigate("/");
     } catch (error) {
       setErrors({ submit: "Google Sign-In failed. Please try again." });
     }
   };
+  
 
   const description = `Welcome to KizaChat.ai, your gateway to intelligent conversations. Our advanced AI-powered platform offers seamless communication, personalized interactions, and cutting-edge language processing.`;
 

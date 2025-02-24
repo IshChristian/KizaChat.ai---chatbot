@@ -18,7 +18,7 @@ function WithDashboard(Component) {
 
 export default function App() {
   return (
-    <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
+    <GoogleOAuthProvider clientId="1059787373534-utfjan3lm1npq3ifvkum3chjlpnvenr6.apps.googleusercontent.com">
       <Router>
         <Routes>
           {/* Routes inside Dashboard */}

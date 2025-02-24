@@ -321,20 +321,22 @@ export default function ChatPage() {
   }, [fetchChatData])
 
   const handleEditMessage = async (e, messageId, newContent) => {
-  if (e && e.preventDefault) e.preventDefault(); // ✅ Only call preventDefault if e exists
-  if (!newContent.trim() || isResponding) return;
-
-  try {
-    await axios.put(`https://kizachat-server.onrender.com/api/chat/edit/${messageId}`, {
-      content: newContent,
-    });
-    setMessages((prev) =>
-      prev.map((msg) => (msg.id === messageId ? { ...msg, content: newContent } : msg))
-    );
-  } catch (error) {
-    console.error("Error editing message:", error);
-  }
-};
+    if (e && e.preventDefault) e.preventDefault(); // ✅ Prevent default if event exists
+  
+    if (!newContent || typeof newContent !== "string" || newContent.trim() === "" || isResponding) return; // ✅ Ensure newContent is valid
+  
+    try {
+      await axios.put(`https://kizachat-server.onrender.com/api/chat/edit/${messageId}`, {
+        content: newContent,
+      });
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? { ...msg, content: newContent } : msg))
+      );
+    } catch (error) {
+      console.error("Error editing message:", error);
+    }
+  };
+  
 
 
   const handleSendMessage = async (e) => {
