@@ -2,16 +2,15 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams } from "react-router-dom"
-import { Send, ThumbsUp, ThumbsDown, Copy, Edit, Check, ArrowDown, CheckCheck } from "lucide-react"
+import { Send, ThumbsUp, ThumbsDown, Copy, Edit, Check, ArrowDown, CheckCheck, Code } from "lucide-react"
 import DOMPurify from "dompurify"
 import { marked } from "marked"
 import axios from "axios"
-// import Image from "next/image"
 
 const markdownStyles = `
 .markdown-content {
   line-height: 2;
-  font-size: 1.125rem;
+  font-size: 1rem; /* Adjusted font size */
 }
 .markdown-content p {
   margin-bottom: 1.25rem;
@@ -26,16 +25,89 @@ const markdownStyles = `
   border-radius: 0.25rem;
 }
 .markdown-content pre {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: #1e293b;
+  color: #e2e8f0;
   padding: 1rem;
   border-radius: 0.5rem;
   overflow-x: auto;
   margin: 1.25rem 0;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+  font-size: 0.875rem;
+  white-space: pre-wrap; /* Ensure code wraps on smaller screens */
+  word-wrap: break-word; /* Ensure long lines break */
+}
+
+@media (max-width: 640px) {
+  .markdown-content pre {
+    padding: 0.75rem;
+    font-size: 0.75rem;
+  }
+}
+
+.copy-code-button {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s;
+}
+
+@media (max-width: 640px) {
+  .copy-code-button {
+    padding: 0.2rem 0.35rem;
+    right: 0.35rem;
+    bottom: 0.35rem;
+  }
+}
+
+.copy-code-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.copy-code-button.copied {
+  background-color: #10b981;
+}
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
 }
 .markdown-content blockquote {
   border-left: 4px solid rgba(0, 0, 0, 0.2);
   padding-left: 1rem;
   margin: 1.25rem 0;
+}
+.copy-code-button {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  transition: all 0.2s;
+}
+.copy-code-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.copy-code-button.copied {
+  background-color: #10b981;
 }
 
 .focus-visible-ring:focus-visible {
@@ -45,7 +117,7 @@ const markdownStyles = `
 
 @media (min-width: 768px) {
   .markdown-content {
-    font-size: 1.25rem;
+    font-size: 1.125rem; /* Adjusted font size */
   }
 }
 
@@ -91,10 +163,87 @@ const ScrollToBottomButton = ({ onClick }) => (
 )
 
 const formatMessage = (content) => {
-  return DOMPurify.sanitize(marked(content), {
-    ALLOWED_TAGS: ["p", "br", "strong", "em", "u", "code", "pre", "ul", "ol", "li", "blockquote"],
-    ALLOWED_ATTR: [],
-  })
+  const renderer = new marked.Renderer();
+  
+  // Customize code block rendering to add copy button
+  renderer.code = (code, language) => {
+    let codeText = '';
+    let langToUse = language || 'text';
+    
+    if (code === null || code === undefined) {
+      codeText = '';
+    } else if (typeof code === 'object') {
+      if (code.text) {
+        codeText = code.text;
+        if (code.lang) {
+          langToUse = code.lang;
+        }
+      } else {
+        try {
+          codeText = JSON.stringify(code, null, 2);
+        } catch (e) {
+          codeText = '[Object]';
+        }
+      }
+    } else {
+      codeText = String(code);
+    }
+    
+    let highlightedCode = codeText;
+    
+    if (langToUse === 'ruby') {
+      const rubyKeywords = ['if', 'else', 'elsif', 'end', 'puts', 'gets', 'chomp', 'def', 'class', 'module', 'require', 'include', 'attr_accessor', 'attr_reader', 'attr_writer', 'while', 'until', 'for', 'do', 'break', 'next', 'return', 'true', 'false', 'nil', 'self', 'super'];
+      
+      const keywordPattern = new RegExp('\\b(' + rubyKeywords.join('|') + ')\\b', 'g');
+      
+      highlightedCode = highlightedCode.replace(keywordPattern, '<span style="color: #9333ea; font-weight: bold;">$1</span>'); /* Purple color */
+      
+      highlightedCode = highlightedCode.replace(/(["'])(.*?)\1/g, '<span style="color: #0A3069;">$1$2$1</span>');
+    } else if (langToUse === 'javascript' || langToUse === 'js') {
+      const jsKeywords = ['var', 'let', 'const', 'function', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'default', 'break', 'continue', 'try', 'catch', 'finally', 'new', 'delete', 'typeof', 'instanceof', 'void', 'this', 'super', 'class', 'extends', 'import', 'export', 'from', 'as', 'async', 'await', 'true', 'false', 'null', 'undefined'];
+      
+      const keywordPattern = new RegExp('\\b(' + jsKeywords.join('|') + ')\\b', 'g');
+      highlightedCode = highlightedCode.replace(keywordPattern, '<span style="color: #9333ea; font-weight: bold;">$1</span>'); /* Purple color */
+      
+      highlightedCode = highlightedCode.replace(/(["'`])(.*?)\1/g, '<span style="color: #0A3069;">$1$2$1</span>');
+    } else if (langToUse === 'python') {
+      const pythonKeywords = ['and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'False', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'None', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'True', 'try', 'while', 'with', 'yield'];
+      
+      const keywordPattern = new RegExp('\\b(' + pythonKeywords.join('|') + ')\\b', 'g');
+      highlightedCode = highlightedCode.replace(keywordPattern, '<span style="color: #9333ea; font-weight: bold;">$1</span>'); /* Purple color */
+      
+      highlightedCode = highlightedCode.replace(/(["'])(.*?)\1/g, '<span style="color: #0A3069;">$1$2$1</span>');
+    }
+    
+    const escapedCode = highlightedCode
+      .replace(/&(?!(amp;|lt;|gt;|quot;|#039;))/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+      
+    return `
+      <pre style="max-width: 100%; overflow-x: auto;">
+        <code class="language-${langToUse}">${escapedCode}</code>
+        <button class="copy-code-button" data-code="${codeText.replace(/"/g, '&quot;')}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span class="hidden sm:inline">Copy</span>
+        </button>
+      </pre>
+    `;
+  };
+
+  const markedOptions = {
+    renderer,
+    gfm: true,
+    breaks: true,
+    xhtml: false
+  };
+
+  return DOMPurify.sanitize(marked(content, markedOptions), {
+    ALLOWED_TAGS: ["p", "br", "strong", "em", "u", "code", "pre", "ul", "ol", "li", "blockquote", "button", "svg", "rect", "path"],
+    ALLOWED_ATTR: ["class", "data-code", "width", "height", "viewBox", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "d", "x", "y", "rx", "ry"],
+  });
 }
 
 const ChatMessage = ({ message, isUser, onEdit, onSendMessage }) => {
@@ -104,6 +253,39 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage }) => {
   const [isLiked, setIsLiked] = useState(false)
   const [isDisliked, setIsDisliked] = useState(false)
   const { id: chatID } = useParams()
+  const messageRef = useRef(null)
+
+  useEffect(() => {
+    if (messageRef.current) {
+      const copyButtons = messageRef.current.querySelectorAll('.copy-code-button');
+      copyButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const code = button.getAttribute('data-code');
+          navigator.clipboard.writeText(code);
+          
+          button.classList.add('copied');
+          button.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><path d="M20 6 9 17l-5-5"/></svg>
+            Copied!
+          `;
+          
+          setTimeout(() => {
+            button.classList.remove('copied');
+            button.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              Copy
+            `;
+          }, 2000);
+        });
+      });
+      
+      return () => {
+        copyButtons.forEach(button => {
+          button.removeEventListener('click', () => {});
+        });
+      };
+    }
+  }, [message.content]);
 
   const handleLike = () => {
     if (!isDisliked) {
@@ -121,7 +303,7 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage }) => {
 
   const handleSaveEdit = () => {
     if (editedContent.trim() === "") return
-    onEdit(message.id, editedContent)
+    onEdit(null, message.id, editedContent)
     setIsEditing(false)
   }
 
@@ -136,13 +318,13 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage }) => {
   }
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start items-start"} my-4 ml-8 md:ml-1 sm:ml-1`}>
+    <div className={`flex ${isUser ? "justify-end" : "justify-start items-start"} w-full my-4`}>
       {!isUser && (
-        <div className="mr-3">
-          <img src="/png/logo-gorilla.png" alt="AI Assistant" width={40} height={40} className="rounded-full" />
+        <div className="mr-3 flex-shrink-0 hidden lg:block">
+          <img src="/png/logo-gorilla.png" alt="AI Assistant" width={30} height={30} className="rounded-full ml-1" /> {/* Adjusted size and added ml-1 */}
         </div>
       )}
-      <div className={`${isUser ? "max-w-2xl" : "w-full"}`}>
+      <div className={`${isUser ? "max-w-2xl" : "max-w-full md:max-w-3xl"} w-full overflow-hidden`}>
         {isEditing ? (
           <div className="relative">
             <textarea
@@ -169,9 +351,10 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage }) => {
         ) : message.isTyping ? (
           <TypingAnimation />
         ) : (
-          <div className={`p-4 ${isUser ? "bg-gray-100" : "mb-8"} rounded-xl`}>
+          <div className={`p-2 ${isUser ? "bg-gray-100 mt-5" : "mb-8"} rounded-xl`}>
             <div
-              className="markdown-content"
+              ref={messageRef}
+              className="markdown-content overflow-x-auto"
               dangerouslySetInnerHTML={{
                 __html: formatMessage(message.content),
               }}
@@ -268,15 +451,10 @@ export default function ChatPage() {
 
   useEffect(() => {
     const chatContainer = chatContainerRef.current
-    const handleScroll = () => {
-      if (!chatContainerRef.current) return
-      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-      setShowScrollButton(!isNearBottom)
+    if (chatContainer) {
+      chatContainer.addEventListener("scroll", handleScroll)
+      return () => chatContainer.removeEventListener("scroll", handleScroll)
     }
-
-    chatContainer?.addEventListener("scroll", handleScroll)
-    return () => chatContainer?.removeEventListener("scroll", handleScroll)
   }, [])
 
   useEffect(() => {
@@ -321,23 +499,112 @@ export default function ChatPage() {
   }, [fetchChatData])
 
   const handleEditMessage = async (e, messageId, newContent) => {
-    if (e && e.preventDefault) e.preventDefault(); // ✅ Prevent default if event exists
+    if (e && e.preventDefault) e.preventDefault(); 
   
-    if (!newContent || typeof newContent !== "string" || newContent.trim() === "" || isResponding) return; // ✅ Ensure newContent is valid
-  
-    try {
-      await axios.put(`https://kizachat-server.onrender.com/api/chat/edit/${messageId}`, {
-        content: newContent,
+    if (!newContent || typeof newContent !== "string" || newContent.trim() === "" || isResponding) return;
+    
+    const originalMessage = messages.find(msg => msg.id === messageId);
+    if (!originalMessage) return;
+    
+    setMessages(prev =>
+      prev.map(msg => (msg.id === messageId ? { ...msg, content: newContent } : msg))
+    );
+    
+    if (originalMessage.isUser) {
+      setIsResponding(true);
+      
+      const tempTypingId = `typing-${Date.now()}`;
+      setMessages(prev => {
+        const userMsgIndex = prev.findIndex(msg => msg.id === messageId);
+        const aiResponseIndex = userMsgIndex + 1;
+        
+        if (aiResponseIndex < prev.length && !prev[aiResponseIndex].isUser) {
+          return [
+            ...prev.slice(0, aiResponseIndex),
+            {
+              id: tempTypingId,
+              content: "",
+              isUser: false,
+              isTyping: true,
+            },
+            ...prev.slice(aiResponseIndex + 1)
+          ];
+        } else {
+          return [
+            ...prev,
+            {
+              id: tempTypingId,
+              content: "",
+              isUser: false,
+              isTyping: true,
+            }
+          ];
+        }
       });
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === messageId ? { ...msg, content: newContent } : msg))
-      );
-    } catch (error) {
-      console.error("Error editing message:", error);
+      
+      try {
+        const response = await axios.post("https://kizachat-server.onrender.com/api/chat/ask", {
+          chatID,
+          user_email: email || "Guest",
+          question: newContent,
+        });
+        
+        setMessages(prev => prev.filter(msg => msg.id !== tempTypingId));
+        
+        if (response.data?.response || response.data?.data?.response) {
+          const aiResponse = response.data.response || response.data.data.response;
+          const aiMessageId = `ai-${Date.now()}`;
+          
+          setMessages(prev => {
+            const userMsgIndex = prev.findIndex(msg => msg.id === messageId);
+            const aiResponseIndex = userMsgIndex + 1;
+            
+            if (aiResponseIndex < prev.length && !prev[aiResponseIndex].isUser) {
+              return [
+                ...prev.slice(0, aiResponseIndex),
+                {
+                  id: aiMessageId,
+                  content: aiResponse,
+                  isUser: false,
+                },
+                ...prev.slice(aiResponseIndex + 1)
+              ];
+            } else {
+              return [
+                ...prev,
+                {
+                  id: aiMessageId,
+                  content: aiResponse,
+                  isUser: false,
+                }
+              ];
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error getting new response:", error);
+        setMessages(prev => [
+          ...prev.filter(msg => msg.id !== tempTypingId),
+          {
+            id: `error-${Date.now()}`,
+            content: "Failed to get a new response. Please try again.",
+            isUser: false,
+          }
+        ]);
+      } finally {
+        setIsResponding(false);
+        setTimeout(scrollToBottom, 100);
+      }
+    } else {
+      try {
+        await axios.put(`https://kizachat-server.onrender.com/api/chat/edit/${messageId.replace('ai-', '')}`, {
+          content: newContent,
+        });
+      } catch (error) {
+        console.error("Error editing AI message:", error);
+      }
     }
   };
-  
-
 
   const handleSendMessage = async (e) => {
     e.preventDefault()
@@ -354,7 +621,6 @@ export default function ChatPage() {
     setInputMessage("")
     setIsResponding(true)
 
-    // Add temporary typing message
     const tempTypingId = `typing-${Date.now()}`
     setMessages((prev) => [
       ...prev,
@@ -373,7 +639,6 @@ export default function ChatPage() {
         question: inputMessage,
       })
 
-      // Remove typing message
       setMessages((prev) => prev.filter((msg) => msg.id !== tempTypingId))
 
       if (response.data?.response || response.data?.data?.response) {
@@ -391,7 +656,6 @@ export default function ChatPage() {
       }
     } catch (error) {
       console.error("Error:", error)
-      // Remove typing message
       setMessages((prev) => prev.filter((msg) => msg.id !== tempTypingId))
       setMessages((prev) => [
         ...prev,
@@ -411,74 +675,78 @@ export default function ChatPage() {
     const value = e.target.value
     setInputMessage(value)
 
-    // Reset height before calculating new height
     e.target.style.height = "56px"
     const newHeight = Math.min(e.target.scrollHeight, 200)
     e.target.style.height = value.trim() ? `${newHeight}px` : "56px"
   }
 
   return (
-    <div className="flex flex-col bg-white relative" role="main">
+    <div className="flex flex-col bg-white relative w-screen overflow-x-hidden" style={{ maxWidth: "100vw" }} role="main">
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 pb-24 custom-scrollbar"
-        style={{ scrollBehavior: "smooth" }}
+        className="flex-1 overflow-y-auto p-4 space-y-4 pb-32 custom-scrollbar w-full"
+        style={{ scrollBehavior: "smooth", maxWidth: "100%" }}
       >
         {!isDataFetched && messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full space-y-4">
-            <img src="/png/white-gorilla.png" alt="AI Assistant" width={80} height={80} className="rounded-full" />
-            <p className="text-gray-600 text-xl font-medium">Welcome! Type a message to start chatting.</p>
+            <img src="/png/white-gorilla.png" alt="AI Assistant" width={60} height={60} className="rounded-full" /> {/* Adjusted size */}
+            <p className="text-gray-600 text-lg font-medium">Welcome! Type a message to start chatting.</p> {/* Adjusted font size */}
           </div>
         ) : (
-          messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              message={message}
-              isUser={message.isUser}
-              onEdit={handleEditMessage}
-              onSendMessage={handleSendMessage}
-            />
-          ))
+          <div className="mx-auto w-full max-w-6xl px-2">
+            {messages.map((message) => (
+              <ChatMessage
+                key={message.id}
+                message={message}
+                isUser={message.isUser}
+                onEdit={handleEditMessage}
+                onSendMessage={handleSendMessage}
+              />
+            ))}
+            {isResponding && <TypingAnimation />}
+          </div>
         )}
-        {isResponding && <TypingAnimation />}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-white p-4">
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-white p-4 w-full">
         {showScrollButton && <ScrollToBottomButton onClick={scrollToBottom} />}
+        
         <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative">
-  <input
-    type="text"
-    value={inputMessage}
-    onChange={handleInputChange}
-    placeholder="Type your message..."
-    className="w-full pl-4 pr-24 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-600 focus:outline-none"
-    disabled={isResponding}
-    aria-label="Message input"
-    onKeyDown={(e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault()
-        handleSendMessage(e)
-      }
-    }}
-  />
-  
-  <button
-    type="submit"
-    className={`absolute right-2 top-2 rounded-xl ${
-      isResponding ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
-    } p-3 text-white transition-colors focus:outline-none`}
-    disabled={isResponding || !inputMessage.trim()}
-    aria-label={isResponding ? "Sending message..." : "Send message"}
-  >
-    <Send className="h-5 w-5" />
-  </button>
-</form>
-<span className="left-4 mt-4 text-xs text-gray-500" aria-label="Character count">
-    {inputMessage.length}/1000
-  </span>
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={handleInputChange}
+            placeholder="Type your message..."
+            className="w-full pl-4 pr-16 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-600 focus:outline-none"
+            disabled={isResponding}
+            aria-label="Message input"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                handleSendMessage(e)
+              }
+            }}
+          />
+          
+          <button
+            type="submit"
+            className={`absolute right-2 top-1/2 transform -translate-y-1/2 rounded-xl ${
+              isResponding ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
+            } p-3 text-white transition-colors focus:outline-none`}
+            disabled={isResponding || !inputMessage.trim()}
+            aria-label={isResponding ? "Sending message..." : "Send message"}
+          >
+            <Send className="h-5 w-5" />
+          </button>
+        </form>
+        <span className="absolute left-4 bottom-1 text-xs text-gray-500" aria-label="Character count">
+          {inputMessage.length}/1000
+        </span>
+        <div className="text-center text-gray-500 text-xs mb-2 mt-2 sm:text-1xl">
+          KizaChat can make mistakes. Please verify important information.
+        </div>
       </div>
     </div>
   )
 }
-

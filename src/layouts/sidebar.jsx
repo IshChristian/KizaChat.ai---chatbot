@@ -81,7 +81,7 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
 
   const handlePasswordChange = async () => {
     try {
-      await axios.put("https://kizachat-server.onrender.com/api/user/password", {
+      await axios.put("https://kizachat-server.onrender.com/api/auth/password", {
         email: userEmail,
         currentPassword,
         newPassword
@@ -96,7 +96,7 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
 
   const handleDeleteAccount = async () => {
     try {
-      await axios.delete(`https://kizachat-server.onrender.com/api/user/delete/${encodeURIComponent(userEmail)}`);
+      await axios.delete(`https://kizachat-server.onrender.com/api/auth/delete/${encodeURIComponent(userEmail)}`);
       document.cookie = "email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       navigate("/login");
     } catch (error) {
