@@ -351,7 +351,7 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage }) => {
         ) : message.isTyping ? (
           <TypingAnimation />
         ) : (
-          <div className={`p-2 ${isUser ? "bg-gray-100 mt-5" : "mb-8"} rounded-xl`}>
+          <div className={`p-2 ${isUser ? "bg-gray-100 mt-10" : "mb-8"} rounded-xl`}>
             <div
               ref={messageRef}
               className="markdown-content overflow-x-auto"

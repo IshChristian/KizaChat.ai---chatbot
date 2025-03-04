@@ -124,47 +124,34 @@ export default function ChatInterface() {
 
   // Direct API submission function for suggestion cards
   const handleSuggestionClick = (suggestionText) => {
-    // First update the UI to show which suggestion was clicked
+    // Update the UI to show which suggestion was clicked
     setQuestion(suggestionText);
     setSelectedSuggestion(suggestionText);
-    setIsSubmitting(true);
     
     // Check for login
     if (!email) {
       setShowAuthModal(true);
-      setIsSubmitting(false);
       return;
     }
     
-    // Generate a unique chat ID
-    const chatID = generateChatID();
-    
-    // Make the direct API call
-    fetch("https://kizachat-server.onrender.com/api/chat/ask", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_email: email || "Guest",
-        question: suggestionText,
-        chatID: chatID
-      })
-    })
-    .then(response => {
-      if (response.ok) {
-        // Navigate to the chat page
-        navigate(`/chat/${chatID}`);
-      } else {
-        console.error("API error:", response.status);
-        setIsSubmitting(false);
-      }
-    })
-    .catch(error => {
-      console.error("Fetch error:", error);
-      setIsSubmitting(false);
-    });
+    // Trigger the submit mechanism used for both input and suggestion
+    handleQuestionSubmit(new Event('submit'), suggestionText);
   };
+
+  // const handleSuggestionClick = (suggestionText) => {
+  //   // Update the UI to show which suggestion was clicked
+  //   setQuestion(suggestionText);
+  //   // setSelectedSuggestion(suggestionText);
+    
+  //   // Check for login
+  //   if (!email) {
+  //     setShowAuthModal(true);
+  //     return;
+  //   }
+    
+  //   // Trigger the submit mechanism used for both input and suggestion
+  //   handleQuestionSubmit(new Event('submit'), suggestionText);
+  // };
 
   const handleRefreshSuggestions = () => {
     setIsRefreshing(true);
@@ -174,19 +161,31 @@ export default function ChatInterface() {
     }, 300);
   };
 
-  const handleQuestionSubmit = (event) => {
-    event.preventDefault();
-    if (!question.trim() || isSubmitting) return;
+  const handleQuestionSubmit = (event, suggestedQuestion = null) => {
+    // Prevent default form submission
+    if (event && event.preventDefault) {
+      event.preventDefault();
+    }
 
+    // Determine the question to submit
+    const currentQuestion = suggestedQuestion || question;
+
+    // Validate question
+    if (!currentQuestion.trim() || isSubmitting) return;
+
+    // Check login status
     if (!email) {
       setShowAuthModal(true);
       return;
     }
 
+    // Set submitting state
     setIsSubmitting(true);
+    
+    // Generate chat ID
     const chatID = generateChatID();
     
-    // Make API call using fetch instead of axios
+    // Make API call using fetch
     fetch("https://kizachat-server.onrender.com/api/chat/ask", {
       method: "POST",
       headers: {
@@ -194,12 +193,17 @@ export default function ChatInterface() {
       },
       body: JSON.stringify({
         user_email: email || "Guest",
-        question: question,
+        question: currentQuestion,
         chatID: chatID
       })
     })
     .then(response => {
       if (response.ok) {
+        // Reset states
+        setSelectedSuggestion(null);
+        setQuestion("");
+        
+        // Navigate to chat page
         navigate(`/chat/${chatID}`);
       } else {
         console.error("API error:", response.status);
@@ -211,6 +215,9 @@ export default function ChatInterface() {
       setIsSubmitting(false);
     });
   };
+
+
+  
 
   // Truncate email for display
   const displayEmail = email ? (email.length > 15 && isMobile ? `${email.substring(0, 12)}...` : email) : "Guest";
@@ -235,10 +242,26 @@ export default function ChatInterface() {
               Icon={suggestion.icon}
               text={suggestion.text}
               onClick={() => handleSuggestionClick(suggestion.text)}
-              className={`cursor-pointer hover:scale-102 transition-transform text-xs sm:text-sm ${selectedSuggestion === suggestion.text ? 'bg-purple-50 border-purple-300' : ''}`}
+              className={`cursor-pointer hover:scale-102 transition-transform text-xs sm:text-sm 
+                ${selectedSuggestion === suggestion.text && isSubmitting 
+                  ? 'bg-purple-50 border-purple-300 opacity-50 pointer-events-none' 
+                  : ''
+                } 
+                ${selectedSuggestion === suggestion.text ? 'bg-purple-50 border-purple-300' : ''}`}
             />
           ))}
         </div>
+
+        {/* Waiting state overlay when a suggestion is selected */}
+        {isSubmitting && selectedSuggestion && (
+          <div className="fixed inset-0 bg-black bg-opacity-10 flex items-center justify-center z-50">
+            <div className="text-center">
+              <div className="animate-pulse text-purple-600 text-lg sm:text-xl font-semibold">
+                Waiting...
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-center mb-4 sm:mb-6">
           <button 

@@ -41,13 +41,13 @@ export default function RegisterPage() {
     // Make the API call to store the user data
     try {
       const response = await axios.post("https://kizachat-server.onrender.com/api/auth/register", formData)
-      if (response.status === 200) {
+      // if (response.status === 200) {
         // Store email in a cookie (expires in 7 days)
         document.cookie = `email=${formData.email}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
   
         // Redirect to home page
         navigate("/");
-      }
+      // }
     } catch (error) {
       setErrors({ submit: "Failed to register. Please try again." })
     } finally {
