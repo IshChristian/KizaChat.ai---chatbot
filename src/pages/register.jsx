@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import axios from "axios"
 import { Link, useNavigate } from "react-router-dom"
 import { GoogleLogin } from '@react-oauth/google';
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode"
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -78,7 +78,7 @@ export default function RegisterPage() {
   const handleGoogleResponse = async (response) => {
     try {
       const { credential } = response;
-      const decodedToken = jwt_decode(credential);
+      const decodedToken = jwtDecode(credential);
       
       // Extract user information from decoded token
       const { email, name, picture } = decodedToken;

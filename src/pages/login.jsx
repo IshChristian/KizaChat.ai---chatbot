@@ -4,7 +4,8 @@ import axios from "axios";
 import AnimatedText from "../components/animation-text";
 import AnimatedLogo from "../components/animation-logo";
 import { GoogleLogin } from "@react-oauth/google";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode"
+
 
 const CLIENT_ID = '1059787373534-utfjan3lm1npq3ifvkum3chjlpnvenr6.apps.googleusercontent.com';
 
@@ -79,7 +80,8 @@ export default function LoginPage() {
   const handleGoogleResponse = async (response) => {
     try {
       const { credential } = response;
-      const decodedToken = jwt_decode(credential);
+      const decodedToken = jwtDecode(credential);
+      // const decodedToken = jwt_decode(credential);
       
       // Extract user information from decoded token
       const { email, name, picture } = decodedToken;
