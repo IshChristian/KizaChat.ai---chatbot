@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, Plus, Search, Clock, User, MoreVertical, Trash, LogOut, Lock, FileText, AlertTriangle, Menu } from "lucide-react";
+import { X, Plus,RefreshCw, Search, Clock, User, MoreVertical, Trash, LogOut, Lock, FileText, AlertTriangle, Menu } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+
 // Auth Modal Component
 const AuthModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -47,8 +48,6 @@ const AuthModal = ({ isOpen, onClose }) => {
   );
 };
 
-
-
 const sidebarItems = [
   { Icon: Plus, name: "New Chat", path: "/" },
 ];
@@ -73,34 +72,102 @@ const ChatItem = ({ chat, onDelete }) => {
   );
 };
 
+// Feedback Message Component
+const FeedbackMessage = ({ message, type }) => {
+  if (!message) return null;
+  
+  const bgColor = type === "success" ? "bg-green-100" : "bg-red-100";
+  const textColor = type === "success" ? "text-green-700" : "text-red-700";
+  
+  return (
+    <div className={`${bgColor} ${textColor} p-3 rounded-lg mb-4 text-sm`}>
+      {message}
+    </div>
+  );
+};
+
 const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [feedback, setFeedback] = useState({ message: "", type: "" });
+  const [userHasPassword, setUserHasPassword] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isOpen && userEmail) {
+      // Check if user has a password
+      axios.get(`https://kizachat-server.onrender.com/api/auth/check-password/${encodeURIComponent(userEmail)}`)
+        .then(res => {
+          setUserHasPassword(res.data.Password);
+        })
+        .catch(err => {
+          console.error("Error checking password status:", err);
+          setUserHasPassword(true); // Default to assuming they have a password
+        });
+    }
+  }, [isOpen, userEmail]);
 
   const handlePasswordChange = async () => {
     try {
-      await axios.put("https://kizachat-server.onrender.com/api/auth/password", {
-        email: userEmail,
-        currentPassword,
-        newPassword
-      });
-      alert("Password updated successfully");
+      if (userHasPassword == 'DefaultPassword@2025') {
+        // Create password for the first time
+        await axios.put("https://kizachat-server.onrender.com/api/auth/password", {
+          email: userEmail,
+          currentPassword: 'DefaultPassword@2025',
+          newPassword
+        });
+        setFeedback({ 
+          message: "Password created successfully", 
+          type: "success" 
+        });
+      } else {
+        // Update existing password
+        await axios.put("https://kizachat-server.onrender.com/api/auth/password", {
+          email: userEmail,
+          currentPassword,
+          newPassword
+        });
+        setFeedback({ 
+          message: "Password updated successfully", 
+          type: "success" 
+        });
+      }
       setCurrentPassword("");
       setNewPassword("");
     } catch (error) {
-      alert("Failed to update password");
+      setFeedback({ 
+        message: error.response?.data?.message || "Failed to update password", 
+        type: "error" 
+      });
     }
   };
 
   const handleDeleteAccount = async () => {
     try {
-      await axios.delete(`https://kizachat-server.onrender.com/api/auth/delete/${encodeURIComponent(userEmail)}`);
+      if (!currentPassword) {
+        setFeedback({ 
+          message: "Password is required to delete account", 
+          type: "error" 
+        });
+        return;
+      }
+      
+      await axios.delete(`https://kizachat-server.onrender.com/api/auth/delete/${encodeURIComponent(userEmail)}`, {
+        data: { password: currentPassword }
+      });
+      
       document.cookie = "email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "user_name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "picture=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      
       navigate("/login");
     } catch (error) {
-      alert("Failed to delete account");
+      setShowDeleteModal(false);
+      setFeedback({ 
+        message: error.response?.data?.message || "Failed to delete account", 
+        type: "error" 
+      });
     }
   };
 
@@ -115,18 +182,23 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
         </button>
       </div>
 
+      {/* Feedback message */}
+      <FeedbackMessage message={feedback.message} type={feedback.type} />
+
       {/* Account Details Section */}
       <div className="bg-white rounded-lg border p-4 mb-6">
         <h3 className="text-lg font-semibold mb-4">Account Details</h3>
         <p className="text-sm text-gray-600 mb-4">Email: {userEmail}</p>
         <div className="space-y-4">
-          <input
-            type="password"
-            placeholder="Current Password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          {userHasPassword && (
+            <input
+              type="password"
+              placeholder="Current Password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          )}
           <input
             type="password"
             placeholder="New Password"
@@ -138,7 +210,7 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
             onClick={handlePasswordChange}
             className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors"
           >
-            Change Password
+            {userHasPassword ? "Change Password" : "Create Password"}
           </button>
         </div>
       </div>
@@ -149,14 +221,14 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
         <div className="space-y-4">
           <button 
             className="w-full flex items-center justify-between px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
-            onClick={() => window.open("/legal", "_blank")}
+            onClick={() => navigate('/legal')}
           >
             <span>Terms and Conditions</span>
             <FileText className="h-4 w-4" />
           </button>
           <button 
             className="w-full flex items-center justify-between px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
-            onClick={() => window.open("/policy", "_blank")}
+            onClick={() => navigate('/policy')}
           >
             <span>Privacy Policy</span>
             <FileText className="h-4 w-4" />
@@ -180,7 +252,18 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-96">
             <h3 className="text-lg font-semibold mb-4">Delete Account</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to delete your account? This action cannot be undone.</p>
+            <p className="text-gray-600 mb-4">Are you sure you want to delete your account? This action cannot be undone.</p>
+            
+            <div className="mb-4">
+              <input
+                type="password"
+                placeholder="Enter your password to confirm"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
             <div className="flex justify-end space-x-4">
               <button 
                 onClick={() => setShowDeleteModal(false)}
@@ -210,10 +293,35 @@ export default function Sidebar() {
   const [visibleChats, setVisibleChats] = useState(5);
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("Guest");
+  const [userPicture, setUserPicture] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
+  const [chatError, setChatError] = useState(null);
   const navigate = useNavigate();
 
- 
+  const axiosInstance = axios.create({
+    timeout: 10000, // 10 seconds timeout
+  });
+
+  const fetchRecentChats = async (email) => {
+    if (!email) return;
+    
+    setIsLoadingChats(true);
+    setChatError(null);
+    
+    try {
+      const res = await axiosInstance.get(
+        `https://kizachat-server.onrender.com/api/chat/recent/${encodeURIComponent(email)}`
+      );
+      setRecentChats(res.data.data || []);
+      setIsLoadingChats(false);
+    } catch (err) {
+      console.error("Error fetching chats:", err);
+      setIsLoadingChats(false);
+      setChatError("Unable to load recent chats. Server might be unavailable.");
+    }
+  };
 
   useEffect(() => {
     const getEmailFromCookies = () => {
@@ -222,15 +330,30 @@ export default function Sidebar() {
       return emailCookie ? decodeURIComponent(emailCookie.split("=")[1]) : null;
     };
 
+    const getUserNameFromCookies = () => {
+      const cookies = document.cookie.split("; ");
+      const userNameCookie = cookies.find(row => row.startsWith("user_name="));
+      return userNameCookie ? decodeURIComponent(userNameCookie.split("=")[1]) : "Guest";
+    };
+
+    const getPictureFromCookies = () => {
+      const cookies = document.cookie.split("; ");
+      const pictureCookie = cookies.find(row => row.startsWith("picture="));
+      return pictureCookie ? decodeURIComponent(pictureCookie.split("=")[1]) : "";
+    };
+
     const email = getEmailFromCookies();
-    setUserEmail(email);
+    const name = getUserNameFromCookies();
+    const picture = getPictureFromCookies();
     
+    setUserEmail(email);
+    setUserName(name);
+    setUserPicture(picture);
+
     if (email) {
-      axios
-        .get(`https://kizachat-server.onrender.com/api/chat/recent/${encodeURIComponent(email)}`)
-        .then((res) => setRecentChats(res.data.data || []))
-        .catch((err) => console.error("Error fetching chats:", err));
+      fetchRecentChats(email);
     }
+    
     const handleClickOutside = (event) => {
       const sidebar = document.getElementById('sidebar');
       const menuButton = document.getElementById('menu-button');
@@ -241,8 +364,7 @@ export default function Sidebar() {
   
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-
-}, [isMobileMenuOpen]);
+  }, [isMobileMenuOpen]);
 
   const handleDelete = async (chatID) => {
     await axios.delete(`https://kizachat-server.onrender.com/api/chat/chat/${chatID}`);
@@ -250,10 +372,21 @@ export default function Sidebar() {
   };
 
   const handleLogout = () => {
+    // Clear all relevant cookies
     document.cookie = "email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "user_name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "picture=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    
+    // Reset states
+    setUserEmail("");
+    setUserName("Guest");
+    setUserPicture("");
+    setRecentChats([]);
+    
+    // Navigate to login
     navigate("/login");
   };
-
+  
   const handleAuthAction = () => {
     if (userEmail) {
       handleLogout();
@@ -262,112 +395,152 @@ export default function Sidebar() {
     }
   };
 
+  const handleRetryFetchChats = () => {
+    fetchRecentChats(userEmail);
+  };
+
   return (
     <>
-    {/* Mobile Menu Button */}
-    <button
-      id="menu-button"
-      className="fixed top-4 left-4 z-40 p-2 bg-white rounded-lg shadow-md md:hidden"
-      onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-    >
-      {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-    </button>
+      {/* Mobile Menu Button */}
+      <button
+        id="menu-button"
+        className="fixed top-4 left-4 z-40 p-2 bg-white rounded-lg shadow-md md:hidden"
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      >
+        {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </button>
 
-    {/* Sidebar */}
-    <div
-      id="sidebar"
-      className={`fixed top-0 left-0 h-full bg-white border-r flex flex-col items-start py-4 transition-all duration-300 z-50
-          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-          ${isExpanded ? 'md:w-64' : 'md:w-16'}
-          ${isMobileMenuOpen ? 'w-1/2' : 'w-16'}`}
-      onMouseEnter={() => !isMobileMenuOpen && setIsExpanded(true)}
-      onMouseLeave={() => !isMobileMenuOpen && setIsExpanded(false)}
-    >
-      <div className="w-full px-4 mb-6 flex items-center justify-center mt-4 md:mt-0">
-        <img 
-          src={isExpanded || isMobileMenuOpen ? "/png/white-logo.png" : "/png/logo-gorilla.png"} 
-          alt="Logo" 
-          className={isExpanded || isMobileMenuOpen ? "h-8" : "h-8 w-8"} 
-        />
-      </div>
+      {/* Sidebar */}
+      <div
+        id="sidebar"
+        className={`fixed top-0 left-0 h-full bg-white border-r flex flex-col items-start py-4 transition-all duration-300 z-50
+            ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            ${isExpanded ? 'md:w-64' : 'md:w-16'}
+            ${isMobileMenuOpen ? 'w-1/2' : 'w-16'}`}
+        onMouseEnter={() => !isMobileMenuOpen && setIsExpanded(true)}
+        onMouseLeave={() => !isMobileMenuOpen && setIsExpanded(false)}
+      >
+        <div className="w-full px-4 mb-6 flex items-center justify-center mt-4 md:mt-0">
+          <img 
+            src={isExpanded || isMobileMenuOpen ? "/png/white-logo.png" : "/png/logo-gorilla.png"} 
+            alt="Logo" 
+            className={isExpanded || isMobileMenuOpen ? "h-8" : "h-8 w-8"} 
+          />
+        </div>
 
-      <div className="w-full px-2 space-y-2">
-        {sidebarItems.map((item, index) => (
+        <div className="w-full px-2 space-y-2">
+          {sidebarItems.map((item, index) => (
+            <SidebarButton 
+              key={index} 
+              Icon={item.Icon} 
+              name={item.name} 
+              isExpanded={isExpanded || isMobileMenuOpen} 
+              onClick={() => {
+                navigate(item.path || "#");
+                setIsMobileMenuOpen(false);
+              }} 
+            />
+          ))}
+        </div>
+
+        {(isExpanded || isMobileMenuOpen) && (
+          <div className="w-full px-2 mt-6 space-y-2 flex-grow overflow-auto">
+            <div className="flex justify-between items-center px-2 mb-2">
+              <p className="text-xs font-semibold text-gray-500">Recent Chats</p>
+              {userEmail && (
+                <button 
+                  onClick={handleRetryFetchChats} 
+                  className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+                  title="Refresh chats"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            
+            {isLoadingChats ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-gray-900"></div>
+              </div>
+            ) : chatError ? (
+              <div className="bg-red-50 text-red-600 p-2 rounded-lg text-xs">
+                <p>{chatError}</p>
+                <button 
+                  onClick={handleRetryFetchChats}
+                  className="mt-2 text-blue-500 hover:text-blue-700 text-xs flex items-center"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" /> Retry
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  {recentChats.length > 0 ? (
+                    recentChats.slice(0, visibleChats).map((chat, index) => (
+                      <ChatItem key={index} chat={chat} onDelete={handleDelete} />
+                    ))
+                  ) : userEmail ? (
+                    <p className="text-xs text-gray-500 px-2">No recent chats found.</p>
+                  ) : (
+                    <p className="text-xs text-gray-500 px-2">Sign in to see your recent chats.</p>
+                  )}
+                </div>
+                {visibleChats < recentChats.length && (
+                  <button 
+                    onClick={() => setVisibleChats(visibleChats + 5)}
+                    className="w-full mt-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    Load More
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="w-full px-2 mt-auto space-y-2">
+          {userEmail && (
+            <SidebarButton 
+              Icon={User} 
+              name="Profile" 
+              isExpanded={isExpanded || isMobileMenuOpen} 
+              onClick={() => {
+                setShowProfilePanel(true);
+                setIsMobileMenuOpen(false);
+              }} 
+            />
+          )}
           <SidebarButton 
-            key={index} 
-            Icon={item.Icon} 
-            name={item.name} 
+            Icon={LogOut} 
+            name={userEmail ? "Logout" : "Login"} 
             isExpanded={isExpanded || isMobileMenuOpen} 
             onClick={() => {
-              navigate(item.path || "#");
+              handleAuthAction();
               setIsMobileMenuOpen(false);
-            }} 
+            }}
+            className={userEmail ? "text-red-600" : "text-gray-700"}
           />
-        ))}
+        </div>
       </div>
 
-      {(isExpanded || isMobileMenuOpen) && (
-        <div className="w-full px-2 mt-6 space-y-2 flex-grow overflow-auto">
-          <p className="text-xs font-semibold text-gray-500 mb-2 px-2">Recent Chats</p>
-          <div className="space-y-2">
-            {recentChats.slice(0, visibleChats).map((chat, index) => (
-              <ChatItem key={index} chat={chat} onDelete={handleDelete} />
-            ))}
-          </div>
-          {visibleChats < recentChats.length && (
-            <button 
-              onClick={() => setVisibleChats(visibleChats + 5)}
-              className="w-full mt-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Load More
-            </button>
-          )}
-        </div>
+      {/* Overlay for mobile */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
       )}
 
-      <div className="w-full px-2 mt-auto space-y-2">
-        {userEmail && (
-          <SidebarButton 
-            Icon={User} 
-            name="Profile" 
-            isExpanded={isExpanded || isMobileMenuOpen} 
-            onClick={() => {
-              setShowProfilePanel(true);
-              setIsMobileMenuOpen(false);
-            }} 
-          />
-        )}
-        <SidebarButton 
-          Icon={LogOut} 
-          name={userEmail ? "Logout" : "Login"} 
-          isExpanded={isExpanded || isMobileMenuOpen} 
-          onClick={() => {
-            handleAuthAction();
-            setIsMobileMenuOpen(false);
-          }}
-          className={userEmail ? "text-red-600" : "text-gray-700"}
-        />
-      </div>
-    </div>
-
-    {/* Overlay for mobile */}
-    {isMobileMenuOpen && (
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-        onClick={() => setIsMobileMenuOpen(false)}
+      <ProfilePanel 
+        isOpen={showProfilePanel} 
+        onClose={() => setShowProfilePanel(false)}
+        userEmail={userEmail}
       />
-    )}
 
-    <ProfilePanel 
-      isOpen={showProfilePanel} 
-      onClose={() => setShowProfilePanel(false)}
-      userEmail={userEmail}
-    />
-
-    <AuthModal 
-      isOpen={showAuthModal} 
-      onClose={() => setShowAuthModal(false)} 
-    />
-  </>
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
+    </>
   );
 }

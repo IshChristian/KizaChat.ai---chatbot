@@ -3,6 +3,8 @@ import axios from "axios"
 import { Link, useNavigate } from "react-router-dom"
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from "jwt-decode"
+import AnimatedText from "../components/animation-text";
+import AnimatedLogo from "../components/animation-logo";
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -83,34 +85,70 @@ export default function RegisterPage() {
       // Extract user information from decoded token
       const { email, name, picture } = decodedToken;
   
-      const googleData = {
-        email,
-        name,
-        password: "", // Backend should handle social login
-        googleSignup: true
-      };
+      // Check if user exists before creating a new account
+      try {
+        // First, try to check if the user already exists
+        const checkUserResponse = await axios.post(
+          "https://kizachat-server.onrender.com/api/auth/check-user",
+          { email }
+        );
+        
+        // User exists, just log them in
+        // console.log("User already exists, logging in");
+        
+        // Store user details in cookies
+        if (checkUserResponse.data._id) {
+          setCookie("_id", checkUserResponse.data._id, 50);
+        }
+        setCookie("email", email, 7);
+        setCookie("user_name", name, 7);
+        setCookie("picture", picture, 7);
   
-      const registerResponse = await axios.post(
-        "https://kizachat-server.onrender.com/api/auth/register", 
-        googleData
-      );
-  
-      // Store user details in cookies
-      setCookie("_id", registerResponse.data._id, 50);
-      setCookie("email", email, 7);
-      setCookie("name", name, 7);
-      setCookie("picture", picture, 7);
-
-      // Set Google user state
-      setGoogleUser({ email, name, picture });
+        // Set Google user state
+        setGoogleUser({ email, name, picture });
+        
+        // Redirect to home page
+        navigate("/");
+        
+      } catch (checkError) {
+        // User doesn't exist, register them
+        if (checkError.response?.status === 404) {
+          // console.log("User doesn't exist, creating new account");
+          
+          const googleData = {
+            email,
+            name,
+            password: "DefaultPassword@2025",
+          };
       
-      // Redirect to home page
-      navigate("/");
+          const registerResponse = await axios.post(
+            "https://kizachat-server.onrender.com/api/auth/register", 
+            googleData
+          );
+      
+          // Store user details in cookies
+          setCookie("_id", registerResponse.data._id, 50);
+          setCookie("email", email, 7);
+          setCookie("user_name", name, 7);
+          setCookie("picture", picture, 7);
+  
+          // Set Google user state
+          setGoogleUser({ email, name, picture });
+          
+          // Redirect to home page
+          navigate("/");
+        } else {
+          // Some other error occurred during the check
+          throw checkError;
+        }
+      }
     } catch (error) {
-      console.error("Google registration failed", error);
-      setErrors({ submit: error.response?.data?.message || "Google registration failed. Please try again." });
+      console.error("Google authentication failed", error);
+      setErrors({ 
+        submit: error.response?.data?.message || "Google authentication failed. Please try again." 
+      });
     }
-  }
+  };
 
   // Check for existing registered user on component mount
   useEffect(() => {
@@ -128,7 +166,7 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen w-full">
       {/* Left side - Image and Description */}
-      <div className="hidden lg:flex w-1/2 relative bg-blue-600">
+      <div className="hidden lg:flex w-1/2 relative bg-purple-600">
         <img
           src="https://images.unsplash.com/photo-1655635643532-fa9ba2648cbe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90fHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
           alt="AI Chat Background"

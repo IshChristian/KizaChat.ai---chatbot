@@ -54,7 +54,7 @@ const LegalPolicy = () => {
         <h2 className="text-2xl font-semibold text-gray-800">6. Contact Information</h2>
         <p className="text-gray-600">
           For any inquiries or concerns about the legal terms or policies of KizaChat.ai, please contact our support team
-          at <a href="mailto:support@kizachat.ai" className="text-purple-600">support@kizachat.ai</a>.
+          at <a href="mailto:support@kizachat.ai" className="text-purple-600">ishimwechristia94@gmail.com</a>.
         </p>
       </section>
 

@@ -5,6 +5,7 @@ import Messages from './pages/messages';
 import Login from './pages/login';
 import Lg from './pages/legal&policy';
 import Tc from './pages/terms&conditional';
+import Forgot from './pages/forgotpassword';
 import Register from './pages/register';
 import Dashboard from './layouts/dashboard';
 
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/legal" element={<Lg />} />
           <Route path="/policy" element={<Tc />} />
+          <Route path="/reset-password" element={<Forgot />} />
 
           {/* Google Login Route */}
           <Route

@@ -681,72 +681,75 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col bg-white relative w-screen overflow-x-hidden" style={{ maxWidth: "100vw" }} role="main">
-      <div
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 pb-32 custom-scrollbar w-full"
-        style={{ scrollBehavior: "smooth", maxWidth: "100%" }}
-      >
-        {!isDataFetched && messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full space-y-4">
-            <img src="/png/white-gorilla.png" alt="AI Assistant" width={60} height={60} className="rounded-full" /> {/* Adjusted size */}
-            <p className="text-gray-600 text-lg font-medium">Welcome! Type a message to start chatting.</p> {/* Adjusted font size */}
-          </div>
-        ) : (
-          <div className="mx-auto w-full max-w-6xl px-2">
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                message={message}
-                isUser={message.isUser}
-                onEdit={handleEditMessage}
-                onSendMessage={handleSendMessage}
-              />
-            ))}
-            {isResponding && <TypingAnimation />}
-          </div>
-        )}
-        <div ref={messagesEndRef} />
+    <div className="flex flex-col bg-white w-full" role="main">
+  <div
+    ref={chatContainerRef}
+    className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 custom-scrollbar"
+    style={{ scrollBehavior: "smooth" }}
+  >
+    {!isDataFetched && messages.length === 0 ? (
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <img src="/png/white-gorilla.png" alt="AI Assistant" width={60} height={60} className="rounded-full" />
+        <p className="text-gray-600 text-lg font-medium">Welcome! Type a message to start chatting.</p>
       </div>
-
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-white p-4 w-full">
-        {showScrollButton && <ScrollToBottomButton onClick={scrollToBottom} />}
-        
-        <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative">
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={handleInputChange}
-            placeholder="Type your message..."
-            className="w-full pl-4 pr-16 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-600 focus:outline-none"
-            disabled={isResponding}
-            aria-label="Message input"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleSendMessage(e)
-              }
-            }}
+    ) : (
+      <div className="mx-auto w-full max-w-6xl">
+        {messages.map((message) => (
+          <ChatMessage
+            key={message.id}
+            message={message}
+            isUser={message.isUser}
+            onEdit={handleEditMessage}
+            onSendMessage={handleSendMessage}
           />
-          
-          <button
-            type="submit"
-            className={`absolute right-2 top-1/2 transform -translate-y-1/2 rounded-xl ${
-              isResponding ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
-            } p-3 text-white transition-colors focus:outline-none`}
-            disabled={isResponding || !inputMessage.trim()}
-            aria-label={isResponding ? "Sending message..." : "Send message"}
-          >
-            <Send className="h-5 w-5" />
-          </button>
-        </form>
-        <span className="absolute left-4 bottom-1 text-xs text-gray-500" aria-label="Character count">
-          {inputMessage.length}/1000
-        </span>
-        <div className="text-center text-gray-500 text-xs mb-2 mt-2 sm:text-1xl">
-          KizaChat can make mistakes. Please verify important information.
-        </div>
+        ))}
+        {isResponding && <TypingAnimation />}
       </div>
+    )}
+    <div ref={messagesEndRef} />
+  </div>
+
+  <div className="sticky bottom-0 left-0 right-0 border-t bg-white p-3 w-full">
+    {showScrollButton && <ScrollToBottomButton onClick={scrollToBottom} />}
+    
+    <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative">
+      <textarea
+        value={inputMessage}
+        onChange={(e) => {
+          handleInputChange(e);
+          // Auto-adjust height
+          e.target.style.height = 'auto';
+          e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+        }}
+        placeholder="Type your message..."
+        className="w-full pl-4 pr-16 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-600 focus:outline-none resize-none min-h-10 overflow-hidden"
+        disabled={isResponding}
+        aria-label="Message input"
+        rows="1"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage(e);
+          }
+        }}
+      />
+      
+      <button
+        type="submit"
+        className={`absolute right-3 top-1/2 transform -translate-y-1/2 rounded-xl ${
+          isResponding ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
+        } p-2 text-white transition-colors focus:outline-none`}
+        disabled={isResponding || !inputMessage.trim()}
+        aria-label={isResponding ? "Sending message..." : "Send message"}
+      >
+        <Send className="h-5 w-5" />
+      </button>
+    </form>
+    
+    <div className="text-center text-gray-500 text-xs mt-2">
+      KizaChat can make mistakes, Please check important info.
     </div>
+  </div>
+</div>
   )
 }
