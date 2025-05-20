@@ -356,20 +356,20 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage, isNewMessage }) =
               <textarea
                 value={editedContent}
                 onChange={(e) => setEditedContent(e.target.value)}
-                className="w-full p-2 md:p-3 rounded-lg border-2 border-purple-600 focus:outline-none resize-none text-sm"
+                className="w-full p-2 md:p-3 rounded-lg border-2 border-purple-600 focus:outline-none resize-none text-sm md:text-base"
                 rows={4}
                 aria-label="Edit message"
               />
               <div className="flex justify-end mt-2 space-x-2">
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-2 py-1 text-xs md:text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                  className="px-2 py-1 text-xs md:text-gray-600 md:px-3 md:py-1 hover:bg-gray-100 rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  className="px-2 py-1 text-xs md:text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-2 py-1 text-xs md:text-base md:px-3 md:py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                 >
                   Save
                 </button>
@@ -378,7 +378,7 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage, isNewMessage }) =
           ) : (
             <div
               ref={messageRef}
-              className={`markdown-content text-sm ${isUser ? "text-white" : "text-gray-800"}`}
+              className={`markdown-content text-sm md:text-base ${isUser ? "text-white" : "text-gray-800"}`}
               dangerouslySetInnerHTML={{ 
                 __html: formatMessage(
                   displayedContent + 
@@ -401,13 +401,13 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage, isNewMessage }) =
                 >
                   {isCopied ? (
                     <>
-                      <CheckCheck size={14} className="text-green-500" />
+                      <CheckCheck size={14} className="md:w-4 md:h-4 text-green-500" />
                       <span className="absolute -top-6 -right-2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                         Copied!
                       </span>
                     </>
                   ) : (
-                    <Copy size={14} />
+                    <Copy size={14} className="md:w-4 md:h-4" />
                   )}
                 </button>
                 <button
@@ -415,7 +415,7 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage, isNewMessage }) =
                   className="p-1 text-gray-500 hover:text-purple-600 rounded-full"
                   aria-label="Edit"
                 >
-                  <Edit size={14} />
+                  <Edit size={14} className="md:w-4 md:h-4" />
                 </button>
               </>
             ) : (
@@ -427,13 +427,13 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage, isNewMessage }) =
                 >
                   {isCopied ? (
                     <>
-                      <CheckCheck size={14} className="text-green-500" />
+                      <CheckCheck size={14} className="md:w-4 md:h-4 text-green-500" />
                       <span className="absolute -top-6 -right-2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                         Copied!
                       </span>
                     </>
                   ) : (
-                    <Copy size={14} />
+                    <Copy size={14} className="md:w-4 md:h-4" />
                   )}
                 </button>
                 <button
@@ -441,14 +441,14 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage, isNewMessage }) =
                   className={`p-1 ${isLiked ? "text-blue-500" : "text-gray-500 hover:text-gray-700"}`}
                   aria-label="Like"
                 >
-                  <ThumbsUp size={14} />
+                  <ThumbsUp size={14} className="md:w-4 md:h-4" />
                 </button>
                 <button
                   onClick={handleDislike}
                   className={`p-1 ${isDisliked ? "text-red-500" : "text-gray-500 hover:text-gray-700"}`}
                   aria-label="Dislike"
                 >
-                  <ThumbsDown size={14} />
+                  <ThumbsDown size={14} className="md:w-4 md:h-4" />
                 </button>
               </div>
             )}
@@ -871,7 +871,7 @@ try {
     }
   }
 
-  return (
+ return (
     <div className="flex flex-col h-screen bg-white">
       {/* Chat area */}
       <div
@@ -879,7 +879,7 @@ try {
         className="flex-1 overflow-y-auto p-2 pb-20 md:p-4 md:pb-24 custom-scrollbar"
         style={{ scrollBehavior: "smooth" }}
       >
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-xl md:max-w-3xl mx-auto">
           {!isDataFetched && messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full space-y-4 py-16 md:py-20">
               <div className="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center">
@@ -912,7 +912,7 @@ try {
                     />
                   </div>
                   <div className="flex flex-col items-start max-w-[80%] md:max-w-[85%]">
-                    <div className="p-3 md:p-4 rounded-2xl bg-gray-100 text-gray-800 shadow-sm rounded-bl-none text-sm">
+                    <div className="p-3 md:p-4 rounded-2xl bg-gray-100 text-gray-800 shadow-sm rounded-bl-none text-sm md:text-base">
                       {fileUploadState === 'uploading' ? (
                         <div className="flex items-center">
                           <span className="mr-2">Uploading file: {selectedFile?.name}</span>
@@ -935,7 +935,7 @@ try {
       </div>
 
       {/* User Input Area */}
-      <div className="flex flex-col w-full max-w-2xl bg-white rounded-xl p-3 md:p-4 shadow-lg mx-auto mb-3 md:mb-4">
+      <div className="flex flex-col w-full max-w-xl md:max-w-3xl bg-white rounded-xl p-3 md:p-4 shadow-lg mx-auto mb-3 md:mb-4">
         <form onSubmit={handleQuestionSubmit} className="flex flex-col space-y-3 md:space-y-4">
           {selectedFile && (
             <FileAttachment 
@@ -945,7 +945,7 @@ try {
           )}
           <textarea
             ref={textareaRef}
-            className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none overflow-hidden text-sm"
+            className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none overflow-hidden text-sm md:text-base"
             placeholder="Ask whatever you want..."
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
@@ -959,11 +959,11 @@ try {
               <button
                 type="button"
                 onClick={() => setSelectedButton("search")}
-                className={`flex items-center px-3 py-1 md:px-4 md:py-2 rounded-full transition text-xs md:text-sm ${
+                className={`flex items-center px-3 py-1 md:px-4 md:py-2 rounded-full transition text-xs md:text-base ${
                   selectedButton === "search" ? "bg-blue-100" : "bg-gray-100"
                 } text-gray-700`}
               >
-                <Globe size={16} className="mr-1 md:mr-2" />
+                <Globe size={16} className="mr-1 md:mr-2 md:w-5 md:h-5" />
                 Search
               </button>
             </div>
@@ -973,7 +973,7 @@ try {
               <button
                 type="button"
                 onClick={() => setShowModelModal(true)}
-                className="bg-gray-100 text-gray-700 px-3 py-1 md:px-4 md:py-2 rounded-lg hover:bg-gray-200 transition text-xs md:text-sm"
+                className="bg-gray-100 text-gray-700 px-3 py-1 md:px-4 md:py-2 rounded-lg hover:bg-gray-200 transition text-xs md:text-base"
               >
                 {getModelDisplayName()}
               </button>
@@ -987,7 +987,7 @@ try {
                 {isResponding ? (
                   <div className="w-3 h-3 md:w-4 md:h-4 bg-white rounded-full animate-pulse"></div>
                 ) : (
-                  <Send size={16} />
+                  <Send size={16} className="md:w-5 md:h-5" />
                 )}
               </button>
             </div>

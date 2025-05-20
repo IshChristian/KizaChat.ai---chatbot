@@ -127,9 +127,7 @@ export default function ChatInterface() {
         return 'Llama 3.3 Turbo';
     }
   };
-
-  
-return (
+  return(
   <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-white to-gray-50 text-gray-800 px-6 py-10 md:px-16 md:py-12">
     {/* Header Section */}
     {!hideHeader && (
@@ -142,7 +140,7 @@ return (
 
     {/* User Input Area */}
     <div className={`w-full max-w-xl bg-white rounded-xl p-3 md:p-4 shadow-lg ${inputAreaClass} mx-auto mb-2`}>
-      <form onSubmit={handleQuestionSubmit} className="flex flex-col space-y-3 md:space-y-0 md:flex-row md:space-x-3 md:items-center">
+      <form onSubmit={handleQuestionSubmit} className="flex flex-col space-y-3">
         <textarea
           className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none scrollbar-hide text-sm"
           placeholder="Ask whatever you want..."
@@ -204,38 +202,36 @@ return (
       onSelectModel={handleModelSelect}
     />
 
-    {/* Prompt Suggestions */}
-    {!hideSuggestions && (
-      <div className="w-full max-w-2xl mt-10 mx-auto px-6">
-        <h2 className="text-base font-semibold mb-4 flex items-center justify-center">
-          <List size={18} className="mr-2 text-purple-600" />
-          Suggestions
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {suggestions.map((suggestion, index) => (
-            <button
-              key={index}
-              onClick={() => setQuestion(suggestion.text)}
-              className="bg-white text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition shadow-sm border border-gray-100 text-xs md:text-sm text-center truncate"
-            >
-              {/* Icon hidden */}
-              <span>{suggestion.text.split(' ').slice(0, 4).join(' ')}...</span>
-            </button>
-          ))}
-        </div>
-        <div className="flex justify-center mt-4">
+      {/* Prompt Suggestions */}
+      {!hideSuggestions && (
+        <div className="w-full max-w-2xl mt-8">
+          <h2 className="text-lg font-semibold mb-4 flex items-center">
+            <List size={32} className="mr-2 text-purple-600" />
+            Suggestions
+          </h2>
+          <div className="flex flex-wrap gap-4">
+            {suggestions.map((suggestion, index) => (
+              <button
+                key={index}
+                onClick={() => setQuestion(suggestion.text)}
+                className="flex-1 flex flex-col items-center bg-white text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-50 transition shadow-sm border border-gray-100"
+              >
+                {suggestion.icon}
+                <span>{suggestion.text}</span>
+              </button>
+            ))}
+          </div>
           <button
             onClick={handleRefreshPrompts}
-            className="flex items-center text-purple-600 hover:underline text-xs md:text-sm"
+            className="flex items-center text-purple-600 mt-4 hover:underline"
           >
-            <RefreshCcw size={14} className="mr-1" />
-            Refresh
+            <RefreshCcw size={20} className="mr-2" />
+            Refresh Prompts
           </button>
         </div>
-      </div>
-    )}
-  </div>
-);
+      )}
+    </div>
+  );
 }
 
 function generateChatID() {
