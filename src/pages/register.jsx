@@ -17,6 +17,8 @@ export default function RegisterPage() {
     confirmPassword: "",
   })
   const navigate = useNavigate();
+  const BASE_URL = import.meta.env.VITE_SERVER_API_URL
+
 
   // Function to store data in cookies
   const setCookie = (name, value, days) => {
@@ -61,7 +63,7 @@ export default function RegisterPage() {
 
     // Make the API call to store the user data
     try {
-      const response = await axios.post("https://kizachat-server.onrender.com/api/auth/register", formData)
+      const response = await axios.post(`${BASE_URL}/users/register`, formData)
       
       // Store user details in cookies
       setCookie("email", formData.email, 7);
@@ -89,7 +91,7 @@ export default function RegisterPage() {
       try {
         // First, try to check if the user already exists
         const checkUserResponse = await axios.post(
-          "https://kizachat-server.onrender.com/api/auth/check-user",
+          `${BASE_URL}/users/google-signin`,
           { email }
         );
         
@@ -122,7 +124,7 @@ export default function RegisterPage() {
           };
       
           const registerResponse = await axios.post(
-            "https://kizachat-server.onrender.com/api/auth/register", 
+            `${BASE_URL}/users/register`, 
             googleData
           );
       

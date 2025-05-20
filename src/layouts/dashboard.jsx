@@ -6,8 +6,8 @@ const Layout = ({ children }) => {
     <div className="flex h-screen w-screen bg-white">
       <Sidebar className="fixed z-1" />
       <div className="flex-grow flex flex-col">
-        <Navbar className="z-0" />
-        <main className="flex-grow p-4 ">{children}</main>
+        {/* <Navbar className="z-0" /> */}
+        <main className="flex-grow">{children}</main>
       </div>
     </div>
   )

@@ -1,16 +1,16 @@
-"use client"
-
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams } from "react-router-dom"
-import { Send, ThumbsUp, ThumbsDown, Copy, Edit, Check, ArrowDown, CheckCheck, Code } from "lucide-react"
+import { Send, ThumbsUp, ThumbsDown, Copy, Edit, Check, ArrowDown, CheckCheck, Paperclip, Globe, X } from "lucide-react"
 import DOMPurify from "dompurify"
 import { marked } from "marked"
 import axios from "axios"
 
+
+
 const markdownStyles = `
 .markdown-content {
   line-height: 2;
-  font-size: 1rem; /* Adjusted font size */
+  font-size: 1rem;
 }
 .markdown-content p {
   margin-bottom: 1.25rem;
@@ -35,17 +35,15 @@ const markdownStyles = `
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   max-width: 100%;
   font-size: 0.875rem;
-  white-space: pre-wrap; /* Ensure code wraps on smaller screens */
-  word-wrap: break-word; /* Ensure long lines break */
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
-
 @media (max-width: 640px) {
   .markdown-content pre {
     padding: 0.75rem;
     font-size: 0.75rem;
   }
 }
-
 .copy-code-button {
   position: absolute;
   right: 0.5rem;
@@ -61,19 +59,9 @@ const markdownStyles = `
   gap: 0.25rem;
   transition: all 0.2s;
 }
-
-@media (max-width: 640px) {
-  .copy-code-button {
-    padding: 0.2rem 0.35rem;
-    right: 0.35rem;
-    bottom: 0.35rem;
-  }
-}
-
 .copy-code-button:hover {
   background-color: rgba(255, 255, 255, 0.2);
 }
-
 .copy-code-button.copied {
   background-color: #10b981;
 }
@@ -88,69 +76,42 @@ const markdownStyles = `
   padding-left: 1rem;
   margin: 1.25rem 0;
 }
-.copy-code-button {
-  position: absolute;
-  right: 1px;
-  bottom: 1px;
-  padding: 0.25rem 0.5rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 0.25rem;
-  color: #e2e8f0;
-  font-size: 0.75rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 1px;
-  transition: all 0.2s;
-}
-.copy-code-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-.copy-code-button.copied {
-  background-color: #10b981;
-}
-
 .focus-visible-ring:focus-visible {
   outline: 2px solid #818cf8 !important;
   outline-offset: 2px;
 }
-
 @media (min-width: 768px) {
   .markdown-content {
-    font-size: 1.125rem; /* Adjusted font size */
+    font-size: 1.125rem;
   }
 }
-
 *:focus {
   outline: none !important;
 }
-
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #c7d2fe;
   border-radius: 4px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #818cf8;
 }
+.typing-dot {
+  display: inline-block;
+  animation: blink 1s infinite;
+  margin-left: 2px;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
 `
-
-const TypingAnimation = () => (
-  <div className="flex items-center space-x-2 p-4" role="status" aria-label="AI is typing">
-    <div className="w-2.5 h-2.5 bg-gray-600 rounded-full animate-bounce"></div>
-    <div className="w-2.5 h-2.5 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-    <div className="w-2.5 h-2.5 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
-  </div>
-)
 
 const ScrollToBottomButton = ({ onClick }) => (
   <button
@@ -162,10 +123,43 @@ const ScrollToBottomButton = ({ onClick }) => (
   </button>
 )
 
+const ModelSelectionModal = ({ isOpen, onClose, selectedModel, onSelectModel }) => {
+  const models = [
+    { id: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free', name: 'DeepSeek R1' },
+    { id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', name: 'Llama 3.3 Turbo' },
+    { id: 'meta-llama/Llama-Vision-Free', name: 'Llama Vision' }
+  ]
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Select AI Model</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="space-y-2">
+          {models.map(model => (
+            <button
+              key={model.id}
+              onClick={() => onSelectModel(model.id)}
+              className={`w-full text-left p-3 rounded-lg transition ${selectedModel === model.id ? 'bg-purple-100 text-purple-700' : 'hover:bg-gray-100'}`}
+            >
+              {model.name}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const formatMessage = (content) => {
   const renderer = new marked.Renderer();
   
-  // Customize code block rendering to add copy button
   renderer.code = (code, language) => {
     let codeText = '';
     let langToUse = language || 'text';
@@ -193,25 +187,18 @@ const formatMessage = (content) => {
     
     if (langToUse === 'ruby') {
       const rubyKeywords = ['if', 'else', 'elsif', 'end', 'puts', 'gets', 'chomp', 'def', 'class', 'module', 'require', 'include', 'attr_accessor', 'attr_reader', 'attr_writer', 'while', 'until', 'for', 'do', 'break', 'next', 'return', 'true', 'false', 'nil', 'self', 'super'];
-      
       const keywordPattern = new RegExp('\\b(' + rubyKeywords.join('|') + ')\\b', 'g');
-      
-      highlightedCode = highlightedCode.replace(keywordPattern, '<span style="color: #9333ea; font-weight: bold;">$1</span>'); /* Purple color */
-      
+      highlightedCode = highlightedCode.replace(keywordPattern, '<span style="color: #9333ea; font-weight: bold;">$1</span>');
       highlightedCode = highlightedCode.replace(/(["'])(.*?)\1/g, '<span style="color: #0A3069;">$1$2$1</span>');
     } else if (langToUse === 'javascript' || langToUse === 'js') {
       const jsKeywords = ['var', 'let', 'const', 'function', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'default', 'break', 'continue', 'try', 'catch', 'finally', 'new', 'delete', 'typeof', 'instanceof', 'void', 'this', 'super', 'class', 'extends', 'import', 'export', 'from', 'as', 'async', 'await', 'true', 'false', 'null', 'undefined'];
-      
       const keywordPattern = new RegExp('\\b(' + jsKeywords.join('|') + ')\\b', 'g');
-      highlightedCode = highlightedCode.replace(keywordPattern, '<span style="color: #9333ea; font-weight: bold;">$1</span>'); /* Purple color */
-      
+      highlightedCode = highlightedCode.replace(keywordPattern, '<span style="color: #9333ea; font-weight: bold;">$1</span>');
       highlightedCode = highlightedCode.replace(/(["'`])(.*?)\1/g, '<span style="color: #0A3069;">$1$2$1</span>');
     } else if (langToUse === 'python') {
       const pythonKeywords = ['and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'False', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'None', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'True', 'try', 'while', 'with', 'yield'];
-      
       const keywordPattern = new RegExp('\\b(' + pythonKeywords.join('|') + ')\\b', 'g');
-      highlightedCode = highlightedCode.replace(keywordPattern, '<span style="color: #9333ea; font-weight: bold;">$1</span>'); /* Purple color */
-      
+      highlightedCode = highlightedCode.replace(keywordPattern, '<span style="color: #9333ea; font-weight: bold;">$1</span>');
       highlightedCode = highlightedCode.replace(/(["'])(.*?)\1/g, '<span style="color: #0A3069;">$1$2$1</span>');
     }
     
@@ -241,19 +228,46 @@ const formatMessage = (content) => {
   };
 
   return DOMPurify.sanitize(marked(content, markedOptions), {
-    ALLOWED_TAGS: ["p", "br", "strong", "em", "u", "code", "pre", "ul", "ol", "li", "blockquote", "button", "svg", "rect", "path"],
-    ALLOWED_ATTR: ["class", "data-code", "width", "height", "viewBox", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "d", "x", "y", "rx", "ry"],
+    ALLOWED_TAGS: ["p", "br", "strong", "em", "u", "code", "pre", "ul", "ol", "li", "blockquote", "button", "svg", "rect", "path", "span"],
+    ALLOWED_ATTR: ["class", "data-code", "width", "height", "viewBox", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "d", "x", "y", "rx", "ry", "style"],
   });
 }
 
-const ChatMessage = ({ message, isUser, onEdit, onSendMessage }) => {
+const ChatMessage = ({ message, isUser, onEdit, onSendMessage, isNewMessage }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [editedContent, setEditedContent] = useState(message.content)
   const [isCopied, setIsCopied] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
   const [isDisliked, setIsDisliked] = useState(false)
-  const { id: chatID } = useParams()
+  const [displayedContent, setDisplayedContent] = useState("")
+  const [isTyping, setIsTyping] = useState(false)
   const messageRef = useRef(null)
+
+  // Handle typing animation for AI messages
+  useEffect(() => {
+    if (!isUser && isNewMessage && message.content && !message.isEdited) {
+      setDisplayedContent("")
+      setIsTyping(true)
+      
+      let i = 0
+      const typingInterval = setInterval(() => {
+        if (i < message.content.length) {
+          setDisplayedContent(prev => prev + message.content.charAt(i))
+          i++
+        } else {
+          clearInterval(typingInterval)
+          setIsTyping(false)
+        }
+      }, 20) // Speed of typing animation
+
+      return () => clearInterval(typingInterval)
+    } else {
+      setDisplayedContent(message.content)
+      setIsTyping(false)
+    }
+  }, [message.content, isUser, message.isEdited, isNewMessage])
+
+  // Removed the old blinking dot animation effect that used showTypingDot
 
   useEffect(() => {
     if (messageRef.current) {
@@ -318,89 +332,126 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage }) => {
   }
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start items-start"} w-full my-4`}>
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"} w-full my-2 px-2 md:px-4`}>
       {!isUser && (
-        <div className="mr-3 flex-shrink-0 hidden lg:block">
-          <img src="/png/logo-gorilla.png" alt="AI Assistant" width={30} height={30} className="rounded-full ml-1" /> {/* Adjusted size and added ml-1 */}
+        <div className="mr-2 md:mr-3 flex-shrink-0">
+          <img
+            src="../../png/logo-gorilla.png"
+            alt="Avatar"
+            className="w-8 h-8 md:w-10 md:h-10 rounded-full"
+          />
         </div>
       )}
-      <div className={`${isUser ? "max-w-2xl" : "max-w-full md:max-w-3xl"} w-full overflow-hidden`}>
-        {isEditing ? (
-          <div className="relative">
-            <textarea
-              value={editedContent}
-              onChange={(e) => setEditedContent(e.target.value)}
-              className="w-full p-4 rounded-xl border-2 border-purple-600 focus:outline-none resize-none"
-              rows={4}
-              aria-label="Edit message"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSaveEdit()
-                }
-              }}
-            />
-            <button
-              onClick={handleSaveEdit}
-              className="absolute right-2 top-2 p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none"
-              aria-label="Save edit"
-            >
-              <Check size={20} />
-            </button>
-          </div>
-        ) : message.isTyping ? (
-          <TypingAnimation />
-        ) : (
-          <div className={`p-2 ${isUser ? "bg-gray-100 mt-10" : "mb-8"} rounded-xl`}>
+      
+      <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} max-w-[80%] md:max-w-[85%]`}>
+        <div
+          className={`p-3 md:p-4 rounded-2xl ${
+            isUser
+              ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-sm rounded-br-none"
+              : "text-gray-800"
+          }`}
+        >
+          {isEditing ? (
+            <div className="relative">
+              <textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="w-full p-2 md:p-3 rounded-lg border-2 border-purple-600 focus:outline-none resize-none text-sm"
+                rows={4}
+                aria-label="Edit message"
+              />
+              <div className="flex justify-end mt-2 space-x-2">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="px-2 py-1 text-xs md:text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  className="px-2 py-1 text-xs md:text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          ) : (
             <div
               ref={messageRef}
-              className="markdown-content overflow-x-auto"
-              dangerouslySetInnerHTML={{
-                __html: formatMessage(message.content),
+              className={`markdown-content text-sm ${isUser ? "text-white" : "text-gray-800"}`}
+              dangerouslySetInnerHTML={{ 
+                __html: formatMessage(
+                  displayedContent + 
+                  (isTyping ? '<span class="typing-dot">●</span>' : '')
+                ) 
               }}
             />
-            <div className="flex justify-start space-x-3 mt-3">
-              <button
-                onClick={handleCopy}
-                className="p-2 text-gray-600 hover:text-purple-600 rounded-lg focus:outline-none transition-colors"
-                aria-label={isCopied ? "Copied to clipboard" : "Copy message"}
-              >
-                {isCopied ? <CheckCheck size={18} className="text-green-600 fill-current" /> : <Copy size={18} />}
-              </button>
-              {isUser && (
+          )}
+        </div>
+
+        {/* Message actions */}
+        {!isEditing && (
+          <div className={`flex mt-1 space-x-1 md:space-x-2 ${isUser ? "justify-end" : "justify-start"}`}>
+            {isUser ? (
+              <>
+                <button
+                  onClick={handleCopy}
+                  className="p-1 text-gray-500 hover:text-purple-600 rounded-full relative"
+                  aria-label={isCopied ? "Copied" : "Copy"}
+                >
+                  {isCopied ? (
+                    <>
+                      <CheckCheck size={14} className="text-green-500" />
+                      <span className="absolute -top-6 -right-2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                        Copied!
+                      </span>
+                    </>
+                  ) : (
+                    <Copy size={14} />
+                  )}
+                </button>
                 <button
                   onClick={handleEdit}
-                  className="p-2 text-gray-600 hover:text-purple-600 rounded-lg focus:outline-none transition-colors"
-                  aria-label="Edit message"
+                  className="p-1 text-gray-500 hover:text-purple-600 rounded-full"
+                  aria-label="Edit"
                 >
-                  <Edit size={18} />
+                  <Edit size={14} />
                 </button>
-              )}
-              {!isUser && (
-                <>
-                  <button
-                    onClick={handleLike}
-                    className={`p-2 rounded-lg focus:outline-none transition-colors ${
-                      isLiked ? "bg-green-100 text-green-600" : "text-gray-600 hover:text-green-600"
-                    }`}
-                    aria-label="Like message"
-                    aria-pressed={isLiked}
-                  >
-                    <ThumbsUp size={18} className={isLiked ? "fill-current" : ""} />
-                  </button>
-                  <button
-                    onClick={handleDislike}
-                    className={`p-2 rounded-lg focus:outline-none transition-colors ${
-                      isDisliked ? "bg-red-100 text-red-600" : "text-gray-600 hover:text-red-600"
-                    }`}
-                    aria-label="Dislike message"
-                    aria-pressed={isDisliked}
-                  >
-                    <ThumbsDown size={18} className={isDisliked ? "fill-current" : ""} />
-                  </button>
-                </>
-              )}
-            </div>
+              </>
+            ) : (
+              <div className="flex space-x-2 bg-white/80 backdrop-blur-sm rounded-full px-2 py-0.5 md:px-3 md:py-1 shadow-xs">
+                <button
+                  onClick={handleCopy}
+                  className="p-1 text-gray-500 hover:text-gray-700 relative"
+                  aria-label="Copy"
+                >
+                  {isCopied ? (
+                    <>
+                      <CheckCheck size={14} className="text-green-500" />
+                      <span className="absolute -top-6 -right-2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                        Copied!
+                      </span>
+                    </>
+                  ) : (
+                    <Copy size={14} />
+                  )}
+                </button>
+                <button
+                  onClick={handleLike}
+                  className={`p-1 ${isLiked ? "text-blue-500" : "text-gray-500 hover:text-gray-700"}`}
+                  aria-label="Like"
+                >
+                  <ThumbsUp size={14} />
+                </button>
+                <button
+                  onClick={handleDislike}
+                  className={`p-1 ${isDisliked ? "text-red-500" : "text-gray-500 hover:text-gray-700"}`}
+                  aria-label="Dislike"
+                >
+                  <ThumbsDown size={14} />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -408,17 +459,63 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage }) => {
   )
 }
 
+// File attachment component to display files
+const FileAttachment = ({ file, onRemove }) => {
+  const getFileIcon = (extension) => {
+    // You can add more file type icons based on extension
+    switch(extension.toLowerCase()) {
+      case 'pdf': return '📄';
+      case 'doc':
+      case 'docx': return '📝';
+      case 'jpg':
+      case 'jpeg':
+      case 'png': return '🖼️';
+      case 'txt': return '📃';
+      default: return '📁';
+    }
+  }
+
+  const extension = file.name.split('.').pop();
+  
+  return (
+    <div className="flex items-center bg-gray-100 rounded-lg p-2 my-2">
+      <span className="mr-2 text-xl">{getFileIcon(extension)}</span>
+      <span className="flex-1 truncate">{file.name}</span>
+      <span className="text-xs text-gray-500 mx-2">{extension.toUpperCase()}</span>
+      <button 
+        onClick={onRemove}
+        className="p-1 text-gray-400 hover:text-red-500"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  )
+}
+
+
 export default function ChatPage() {
   const { id: chatID } = useParams()
   const [isLoading, setIsLoading] = useState(true)
   const [isDataFetched, setIsDataFetched] = useState(false)
   const [messages, setMessages] = useState([])
-  const [inputMessage, setInputMessage] = useState("")
+  const [question, setQuestion] = useState("")
+  const [textareaRows, setTextareaRows] = useState(1)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [fileUploadState, setFileUploadState] = useState(null)
+  const [model, setModel] = useState('meta-llama/Llama-3.3-70B-Instruct-Turbo-Free')
   const [isResponding, setIsResponding] = useState(false)
   const [showScrollButton, setShowScrollButton] = useState(false)
+  const [selectedButton, setSelectedButton] = useState(null)
+  const [showModelModal, setShowModelModal] = useState(false)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
+  const textareaRef = useRef(null)
   const [email, setEmail] = useState("")
+  const [isUploading, setIsUploading] = useState(false)
+  const [isParsing, setIsParsing] = useState(false)
+  const [lastMessageId, setLastMessageId] = useState(null)
+  const BASE_URL = import.meta.env.VITE_SERVER_API_URL
+
 
   useEffect(() => {
     const styleElement = document.createElement("style")
@@ -471,7 +568,7 @@ export default function ChatPage() {
     }
 
     try {
-      const response = await fetch(`https://kizachat-server.onrender.com/api/chat/users/${chatID}`)
+      const response = await fetch(`${BASE_URL}/chat/users/${chatID}`)
       if (!response.ok) throw new Error("Failed to fetch chat data")
 
       const responseData = await response.json()
@@ -543,12 +640,14 @@ export default function ChatPage() {
       });
       
       try {
-        const response = await axios.post("https://kizachat-server.onrender.com/api/chat/ask", {
+        const response = await axios.post(`${BASE_URL}/chat/ask`, {
           chatID,
-          user_email: email || "Guest",
+          user_email: email || "Guest", // Ensure this is always included
           question: newContent,
+          model: model
         });
-        
+
+
         setMessages(prev => prev.filter(msg => msg.id !== tempTypingId));
         
         if (response.data?.response || response.data?.data?.response) {
@@ -580,6 +679,7 @@ export default function ChatPage() {
               ];
             }
           });
+          setLastMessageId(aiMessageId)
         }
       } catch (error) {
         console.error("Error getting new response:", error);
@@ -597,7 +697,7 @@ export default function ChatPage() {
       }
     } else {
       try {
-        await axios.put(`https://kizachat-server.onrender.com/api/chat/edit/${messageId.replace('ai-', '')}`, {
+        await axios.put(`${BASE_URL}/chat/edit/${messageId.replace('ai-', '')}`, {
           content: newContent,
         });
       } catch (error) {
@@ -606,150 +706,309 @@ export default function ChatPage() {
     }
   };
 
-  const handleSendMessage = async (e) => {
+
+
+   // Auto-resize textarea as user types
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const adjustHeight = () => {
+      textarea.style.height = 'auto'
+      const newRows = Math.min(3, Math.max(1, Math.ceil(textarea.scrollHeight / 24)))
+      setTextareaRows(newRows)
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 24 * 3)}px`
+    }
+
+    textarea.addEventListener('input', adjustHeight)
+    return () => textarea.removeEventListener('input', adjustHeight)
+  }, [])
+
+  // Reset textarea height when question is cleared
+  useEffect(() => {
+    if (question === '' && textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      setTextareaRows(1)
+    }
+  }, [question])
+
+  // Handle file selection
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0])
+      setSelectedButton("attach")
+    }
+  }
+
+  // Remove selected file
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+  }
+
+  const handleQuestionSubmit = async (e) => {
     e.preventDefault()
-    if (inputMessage.trim() === "" || isResponding) return
+    if ((question.trim() === "" && !selectedFile) || isResponding) return
 
     const userMessageId = `user-${Date.now()}`
     const newUserMessage = {
       id: userMessageId,
-      content: inputMessage,
+      content: question + (selectedFile ? `\n\nAttached file: ${selectedFile.name}` : ""),
       isUser: true,
     }
 
     setMessages((prev) => [...prev, newUserMessage])
-    setInputMessage("")
+    setQuestion("")
+    setTextareaRows(1)
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
     setIsResponding(true)
 
-    const tempTypingId = `typing-${Date.now()}`
+    // Show uploading state if there's a file
+    if (selectedFile) {
+      setFileUploadState('uploading')
+      // Simulate file upload delay (in real app, this would be an actual upload)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setFileUploadState('parsing')
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setFileUploadState(null)
+      setSelectedFile(null)
+    }
+
+    const tempTypingId = `ai-typing-${Date.now()}`
     setMessages((prev) => [
       ...prev,
       {
         id: tempTypingId,
-        content: "",
+        content: "", // Empty content that will be filled by typing effect
         isUser: false,
         isTyping: true,
       },
     ])
 
-    try {
-      const response = await axios.post("https://kizachat-server.onrender.com/api/chat/ask", {
-        chatID,
-        user_email: email || "Guest",
-        question: inputMessage,
-      })
+    // Replace the axios.post section in handleQuestionSubmit with this:
+try {
+  let requestData;
+  let headers = {};
+  
+  if (selectedFile) {
+    // Using FormData for file uploads
+    const formData = new FormData();
+    formData.append('chatID', chatID || '');
+    formData.append('user_email', email || "Guest");
+    formData.append('question', question);
+    formData.append('model', model);
+    formData.append('file', selectedFile);
+    
+    requestData = formData;
+    headers = {
+      'Content-Type': 'multipart/form-data'
+    };
+  } else {
+    // Using JSON for regular requests
+    requestData = {
+      chatID: chatID || '',
+      user_email: email || "Guest",
+      question: question,
+      model: model
+    };
+  }
+  
+  const response = await axios.post(
+    `${BASE_URL}/chat/ask`, 
+    requestData,
+    { headers }
+  );
 
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempTypingId))
-
-      if (response.data?.response || response.data?.data?.response) {
-        const aiResponse = response.data.response || response.data.data.response
-        const aiMessageId = `ai-${Date.now()}`
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: aiMessageId,
-            content: aiResponse,
-            isUser: false,
-          },
-        ])
-        setTimeout(scrollToBottom, 100)
-      }
-    } catch (error) {
-      console.error("Error:", error)
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempTypingId))
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `error-${Date.now()}`,
+  // const response = await axios.post(
+  //   "${BASE_URL}/chat/ask", 
+  //   requestData,
+  //   { headers }
+  // );
+  
+  if (response.data?.response || response.data?.data?.response) {
+    const aiResponse = response.data.response || response.data.data.response;
+    setMessages(prev => prev.map(msg => 
+      msg.id === tempTypingId 
+        ? { ...msg, content: aiResponse, isTyping: false, isEdited: false }
+        : msg
+    ));
+    setLastMessageId(tempTypingId);
+  }
+} catch (error) {
+  console.error("Error:", error);
+  setMessages(prev => prev.map(msg => 
+    msg.id === tempTypingId 
+      ? { 
+          ...msg, 
           content: "Failed to send message. Please try again.",
-          isUser: false,
-        },
-      ])
-    } finally {
+          isTyping: false,
+          isEdited: true 
+        }
+      : msg
+  ));
+} finally {
       setIsResponding(false)
       setTimeout(scrollToBottom, 100)
     }
   }
 
-  const handleInputChange = (e) => {
-    const value = e.target.value
-    setInputMessage(value)
+  const handleModelSelect = (selectedModel) => {
+    setModel(selectedModel)
+    setShowModelModal(false)
+  }
 
-    e.target.style.height = "56px"
-    const newHeight = Math.min(e.target.scrollHeight, 200)
-    e.target.style.height = value.trim() ? `${newHeight}px` : "56px"
+  const getModelDisplayName = () => {
+    switch(model) {
+      case 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free':
+        return 'DeepSeek R1'
+      case 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free':
+        return 'Llama 3.3 Turbo'
+      case 'meta-llama/Llama-Vision-Free':
+        return 'Llama Vision'
+      default:
+        return 'Llama 3.3 Turbo'
+    }
   }
 
   return (
-    <div className="flex flex-col bg-white w-full" role="main">
-  <div
-    ref={chatContainerRef}
-    className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 custom-scrollbar"
-    style={{ scrollBehavior: "smooth" }}
-  >
-    {!isDataFetched && messages.length === 0 ? (
-      <div className="flex flex-col items-center justify-center h-full space-y-4">
-        <img src="/png/white-gorilla.png" alt="AI Assistant" width={60} height={60} className="rounded-full" />
-        <p className="text-gray-600 text-lg font-medium">Welcome! Type a message to start chatting.</p>
-      </div>
-    ) : (
-      <div className="mx-auto w-full max-w-6xl">
-        {messages.map((message) => (
-          <ChatMessage
-            key={message.id}
-            message={message}
-            isUser={message.isUser}
-            onEdit={handleEditMessage}
-            onSendMessage={handleSendMessage}
-          />
-        ))}
-        {isResponding && <TypingAnimation />}
-      </div>
-    )}
-    <div ref={messagesEndRef} />
-  </div>
-
-  <div className="sticky bottom-0 left-0 right-0 border-t bg-white p-3 w-full">
-    {showScrollButton && <ScrollToBottomButton onClick={scrollToBottom} />}
-    
-    <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative">
-      <textarea
-        value={inputMessage}
-        onChange={(e) => {
-          handleInputChange(e);
-          // Auto-adjust height
-          e.target.style.height = 'auto';
-          e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
-        }}
-        placeholder="Type your message..."
-        className="w-full pl-4 pr-16 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-600 focus:outline-none resize-none min-h-10 overflow-hidden"
-        disabled={isResponding}
-        aria-label="Message input"
-        rows="1"
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSendMessage(e);
-          }
-        }}
-      />
-      
-      <button
-        type="submit"
-        className={`absolute right-3 top-1/2 transform -translate-y-1/2 rounded-xl ${
-          isResponding ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
-        } p-2 text-white transition-colors focus:outline-none`}
-        disabled={isResponding || !inputMessage.trim()}
-        aria-label={isResponding ? "Sending message..." : "Send message"}
+    <div className="flex flex-col h-screen bg-white">
+      {/* Chat area */}
+      <div
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto p-2 pb-20 md:p-4 md:pb-24 custom-scrollbar"
+        style={{ scrollBehavior: "smooth" }}
       >
-        <Send className="h-5 w-5" />
-      </button>
-    </form>
-    
-    <div className="text-center text-gray-500 text-xs mt-2">
-      KizaChat can make mistakes, Please check important info.
+        <div className="max-w-2xl mx-auto">
+          {!isDataFetched && messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full space-y-4 py-16 md:py-20">
+              <div className="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center">
+                <img
+                  src="../../png/logo-gorilla.png"
+                  alt="Avatar"
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-full"
+                />
+              </div>
+              <p className="text-gray-600 text-base md:text-lg font-medium">How can I help you today?</p>
+            </div>
+          ) : (
+            <div className="space-y-3 md:space-y-4">
+              {messages.map((message, index) => (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  isUser={message.isUser}
+                  onEdit={handleEditMessage}
+                  isNewMessage={message.id === lastMessageId}
+                />
+              ))}
+              {fileUploadState && (
+                <div className="flex justify-start w-full my-2 px-2 md:px-4">
+                  <div className="mr-2 md:mr-3 flex-shrink-0">
+                    <img
+                      src="../../png/logo-gorilla.png"
+                      alt="Avatar"
+                      className="w-8 h-8 md:w-10 md:h-10 rounded-full"
+                    />
+                  </div>
+                  <div className="flex flex-col items-start max-w-[80%] md:max-w-[85%]">
+                    <div className="p-3 md:p-4 rounded-2xl bg-gray-100 text-gray-800 shadow-sm rounded-bl-none text-sm">
+                      {fileUploadState === 'uploading' ? (
+                        <div className="flex items-center">
+                          <span className="mr-2">Uploading file: {selectedFile?.name}</span>
+                          <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <span className="mr-2">Parsing file: {selectedFile?.name}</span>
+                          <div className="w-3 h-3 md:w-4 md:h-4 bg-purple-600 rounded-full animate-pulse"></div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* User Input Area */}
+      <div className="flex flex-col w-full max-w-2xl bg-white rounded-xl p-3 md:p-4 shadow-lg mx-auto mb-3 md:mb-4">
+        <form onSubmit={handleQuestionSubmit} className="flex flex-col space-y-3 md:space-y-4">
+          {selectedFile && (
+            <FileAttachment 
+              file={selectedFile}
+              onRemove={handleRemoveFile}
+            />
+          )}
+          <textarea
+            ref={textareaRef}
+            className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none overflow-hidden text-sm"
+            placeholder="Ask whatever you want..."
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            rows={textareaRows}
+            maxLength={1000}
+            style={{ minHeight: '24px' }}
+          />
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2 md:space-x-4">
+              {/* Web Icon */}
+              <button
+                type="button"
+                onClick={() => setSelectedButton("search")}
+                className={`flex items-center px-3 py-1 md:px-4 md:py-2 rounded-full transition text-xs md:text-sm ${
+                  selectedButton === "search" ? "bg-blue-100" : "bg-gray-100"
+                } text-gray-700`}
+              >
+                <Globe size={16} className="mr-1 md:mr-2" />
+                Search
+              </button>
+            </div>
+
+            <div className="flex justify-end space-x-2 md:space-x-4">
+              {/* Model Selection Button */}
+              <button
+                type="button"
+                onClick={() => setShowModelModal(true)}
+                className="bg-gray-100 text-gray-700 px-3 py-1 md:px-4 md:py-2 rounded-lg hover:bg-gray-200 transition text-xs md:text-sm"
+              >
+                {getModelDisplayName()}
+              </button>
+
+              {/* Send Button */}
+              <button
+                type="submit"
+                className="flex items-center justify-center bg-gradient-to-r from-purple-600 to-blue-500 text-white w-10 h-10 md:w-12 md:h-12 rounded-full hover:from-purple-700 hover:to-blue-600 transition shadow-md"
+                disabled={isResponding}
+              >
+                {isResponding ? (
+                  <div className="w-3 h-3 md:w-4 md:h-4 bg-white rounded-full animate-pulse"></div>
+                ) : (
+                  <Send size={16} />
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {/* Model Selection Modal */}
+      <ModelSelectionModal
+        isOpen={showModelModal}
+        onClose={() => setShowModelModal(false)}
+        selectedModel={model}
+        onSelectModel={handleModelSelect}
+      />
+
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <div className="fixed right-4 md:right-8 bottom-24 md:bottom-28">
+          <ScrollToBottomButton onClick={scrollToBottom} />
+        </div>
+      )}
     </div>
-  </div>
-</div>
   )
 }

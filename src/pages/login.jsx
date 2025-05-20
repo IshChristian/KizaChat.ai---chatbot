@@ -7,7 +7,8 @@ import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode"
 
 
-const CLIENT_ID = '1059787373534-utfjan3lm1npq3ifvkum3chjlpnvenr6.apps.googleusercontent.com';
+const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
+const BASE_URL = import.meta.env.VITE_SERVER_API_URL
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +56,7 @@ export default function LoginPage() {
 
     try {
       const response = await axios.post(
-        "https://kizachat-server.onrender.com/api/auth/login",
+        `${BASE_URL}/users/login`,
         formData,
         { headers: { "Content-Type": "application/json" } }
       );
@@ -90,7 +91,7 @@ export default function LoginPage() {
       try {
         // First, try to check if the user already exists
         const checkUserResponse = await axios.post(
-          "https://kizachat-server.onrender.com/api/auth/check-user",
+          `${BASE_URL}/users/google-signin`,
           { email }
         );
         
@@ -123,7 +124,7 @@ export default function LoginPage() {
           };
       
           const registerResponse = await axios.post(
-            "https://kizachat-server.onrender.com/api/auth/register", 
+            `${BASE_URL}/users/register`, 
             googleData
           );
       

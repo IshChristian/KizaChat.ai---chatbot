@@ -93,11 +93,13 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
   const [feedback, setFeedback] = useState({ message: "", type: "" });
   const [userHasPassword, setUserHasPassword] = useState(true);
   const navigate = useNavigate();
+  const BASE_URL = import.meta.env.VITE_SERVER_API_URL
+
 
   useEffect(() => {
     if (isOpen && userEmail) {
       // Check if user has a password
-      axios.get(`https://kizachat-server.onrender.com/api/auth/check-password/${encodeURIComponent(userEmail)}`)
+      axios.get(`${BASE_URL}/users/check-password/${encodeURIComponent(userEmail)}`)
         .then(res => {
           setUserHasPassword(res.data.Password);
         })
@@ -112,7 +114,7 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
     try {
       if (userHasPassword == 'DefaultPassword@2025') {
         // Create password for the first time
-        await axios.put("https://kizachat-server.onrender.com/api/auth/password", {
+        await axios.put(`${BASE_URL}/users/password`, {
           email: userEmail,
           currentPassword: 'DefaultPassword@2025',
           newPassword
@@ -123,7 +125,7 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
         });
       } else {
         // Update existing password
-        await axios.put("https://kizachat-server.onrender.com/api/auth/password", {
+        await axios.put(`${BASE_URL}/users/password`, {
           email: userEmail,
           currentPassword,
           newPassword
@@ -153,7 +155,7 @@ const ProfilePanel = ({ isOpen, onClose, userEmail }) => {
         return;
       }
       
-      await axios.delete(`https://kizachat-server.onrender.com/api/auth/delete/${encodeURIComponent(userEmail)}`, {
+      await axios.delete(`${BASE_URL}/users/delete/${encodeURIComponent(userEmail)}`, {
         data: { password: currentPassword }
       });
       
