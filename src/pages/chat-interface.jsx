@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Globe, Paperclip, RefreshCcw, List, Mail, FileText, Cpu, Send, X } from "lucide-react";
+import { Globe, Paperclip, RefreshCcw, List, Mail, FileText, Cpu, Send, X, Mic } from "lucide-react"; // <-- Add Mic
 
 const suggestionPools = [
   [
@@ -18,45 +18,12 @@ const suggestionPools = [
   ],
 ];
 
-const ModelSelectionModal = ({ isOpen, onClose, selectedModel, onSelectModel }) => {
-  const models = [
-    { id: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free', name: 'DeepSeek R1' },
-    { id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', name: 'Llama 3.3 Turbo' },
-    { id: 'meta-llama/Llama-Vision-Free', name: 'Llama Vision' }
-  ];
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Select AI Model</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={20} />
-          </button>
-        </div>
-        <div className="space-y-2">
-          {models.map(model => (
-            <button
-              key={model.id}
-              onClick={() => onSelectModel(model.id)}
-              className={`w-full text-left p-3 rounded-lg transition ${selectedModel === model.id ? 'bg-purple-100 text-purple-700' : 'hover:bg-gray-100'}`}
-            >
-              {model.name}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+// Remove ModelSelectionModal and all its usages
 
 export default function ChatInterface() {
   const navigate = useNavigate();
   const [name, setName] = useState("Guest");
   const [email, setEmail] = useState("");
-  const [model, setModel] = useState("meta-llama/Llama-3.3-70B-Instruct-Turbo-Free");
   const [question, setQuestion] = useState("");
   const [suggestions, setSuggestions] = useState(suggestionPools[0]);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,9 +31,7 @@ export default function ChatInterface() {
   const [hideSuggestions, setHideSuggestions] = useState(false);
   const [hideHeader, setHideHeader] = useState(false);
   const [selectedButton, setSelectedButton] = useState("");
-  const [showModelModal, setShowModelModal] = useState(false);
   const BASE_URL = import.meta.env.VITE_SERVER_API_URL
-
 
   useEffect(() => {
     const cookies = document.cookie.split("; ");
@@ -93,7 +58,6 @@ export default function ChatInterface() {
           user_email: email || "Guest",
           question,
           chatID,
-          model: model // Include selected model in the request
         });
 
         if (response.status === 200) {
@@ -110,23 +74,6 @@ export default function ChatInterface() {
     setSuggestions(suggestionPools[randomPool]);
   };
 
-  const handleModelSelect = (selectedModel) => {
-    setModel(selectedModel);
-    setShowModelModal(false);
-  };
-
-  const getModelDisplayName = () => {
-    switch(model) {
-      case 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free':
-        return 'DeepSeek R1';
-      case 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free':
-        return 'Llama 3.3 Turbo';
-      case 'meta-llama/Llama-Vision-Free':
-        return 'Llama Vision';
-      default:
-        return 'Llama 3.3 Turbo';
-    }
-  };
   return(
   <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-white to-gray-50 text-gray-800 px-6 py-10 md:px-16 md:py-12">
     {/* Header Section */}
@@ -151,29 +98,20 @@ export default function ChatInterface() {
         />
         <div className="flex justify-between items-center">
           <div className="flex items-center mr-2">
-            {/* Web Icon */}
+            
+            {/* Mic Icon */}
             <button
               type="button"
-              onClick={() => setSelectedButton("search")}
-              className={`flex items-center px-3 py-1 rounded-full transition text-xs md:text-sm ${
-                selectedButton === "search" ? "bg-blue-100" : "bg-gray-100"
-              } text-gray-700`}
+              onClick={() => navigate("/chat/kiza-agent")}
+              className="flex items-center px-3 py-1 rounded-full transition text-xs md:text-sm bg-gray-100 text-gray-700 ml-2"
+              title="Voice Agent"
             >
-              <Globe size={16} className="mr-1" />
-              Search
+              <Mic size={18} className="mr-1" />
+              Voice Agent
             </button>
           </div>
 
           <div className="flex space-x-2">
-            {/* Model Selection Button */}
-            <button
-              type="button"
-              onClick={() => setShowModelModal(true)}
-              className="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-200 transition text-xs md:text-sm"
-            >
-              {getModelDisplayName()}
-            </button>
-
             {/* Send Button */}
             <button
               type="submit"
@@ -193,14 +131,6 @@ export default function ChatInterface() {
         </div>
       </form>
     </div>
-
-    {/* Model Selection Modal */}
-    <ModelSelectionModal
-      isOpen={showModelModal}
-      onClose={() => setShowModelModal(false)}
-      selectedModel={model}
-      onSelectModel={handleModelSelect}
-    />
 
       {/* Prompt Suggestions */}
       {!hideSuggestions && (

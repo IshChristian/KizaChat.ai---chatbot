@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { useParams } from "react-router-dom"
-import { Send, ThumbsUp, ThumbsDown, Copy, Edit, Check, ArrowDown, CheckCheck, Paperclip, Globe, X } from "lucide-react"
+import { useParams, useNavigate } from "react-router-dom"
+import { Mic,Send, ThumbsUp, ThumbsDown, Copy, Edit, Check, ArrowDown, CheckCheck, Paperclip, Globe, X } from "lucide-react"
 import DOMPurify from "dompurify"
 import { marked } from "marked"
 import axios from "axios"
@@ -494,6 +494,8 @@ const FileAttachment = ({ file, onRemove }) => {
 
 
 export default function ChatPage() {
+    const navigate = useNavigate();
+  
   const { id: chatID } = useParams()
   const [isLoading, setIsLoading] = useState(true)
   const [isDataFetched, setIsDataFetched] = useState(false)
@@ -872,77 +874,46 @@ try {
   }
 
  return (
-    <div className="flex flex-col h-screen bg-white">
-      {/* Chat area */}
-      <div
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-2 pb-20 md:p-4 md:pb-24 custom-scrollbar"
-        style={{ scrollBehavior: "smooth" }}
-      >
-        <div className="max-w-xl md:max-w-3xl mx-auto">
-          {!isDataFetched && messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full space-y-4 py-16 md:py-20">
-              <div className="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center">
-                <img
-                  src="../../png/logo-gorilla.png"
-                  alt="Avatar"
-                  className="w-8 h-8 md:w-10 md:h-10 rounded-full"
-                />
-              </div>
-              <p className="text-gray-600 text-base md:text-lg font-medium">How can I help you today?</p>
+  <div className="flex flex-col h-screen bg-white">
+    {/* Chat area */}
+    <div
+      ref={chatContainerRef}
+      className="flex-1 overflow-y-auto p-2 pb-32 md:p-4 md:pb-36 custom-scrollbar"
+      style={{ scrollBehavior: "smooth" }}
+    >
+      <div className="max-w-xl md:max-w-3xl mx-auto">
+        {!isDataFetched && messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full space-y-4 py-16 md:py-20">
+            <div className="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center">
+              <img
+                src="../../png/logo-gorilla.png"
+                alt="Avatar"
+                className="w-8 h-8 md:w-10 md:h-10 rounded-full"
+              />
             </div>
-          ) : (
-            <div className="space-y-3 md:space-y-4">
-              {messages.map((message, index) => (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  isUser={message.isUser}
-                  onEdit={handleEditMessage}
-                  isNewMessage={message.id === lastMessageId}
-                />
-              ))}
-              {fileUploadState && (
-                <div className="flex justify-start w-full my-2 px-2 md:px-4">
-                  <div className="mr-2 md:mr-3 flex-shrink-0">
-                    <img
-                      src="../../png/logo-gorilla.png"
-                      alt="Avatar"
-                      className="w-8 h-8 md:w-10 md:h-10 rounded-full"
-                    />
-                  </div>
-                  <div className="flex flex-col items-start max-w-[80%] md:max-w-[85%]">
-                    <div className="p-3 md:p-4 rounded-2xl bg-gray-100 text-gray-800 shadow-sm rounded-bl-none text-sm md:text-base">
-                      {fileUploadState === 'uploading' ? (
-                        <div className="flex items-center">
-                          <span className="mr-2">Uploading file: {selectedFile?.name}</span>
-                          <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <span className="mr-2">Parsing file: {selectedFile?.name}</span>
-                          <div className="w-3 h-3 md:w-4 md:h-4 bg-purple-600 rounded-full animate-pulse"></div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+            <p className="text-gray-600 text-base md:text-lg font-medium">How can I help you today?</p>
+          </div>
+        ) : (
+          <div className="space-y-3 md:space-y-4">
+            {messages.map((message, index) => (
+              <ChatMessage
+                key={message.id}
+                message={message}
+                isUser={message.isUser}
+                onEdit={handleEditMessage}
+                isNewMessage={message.id === lastMessageId}
+              />
+            ))}
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
+    </div>
 
-      {/* User Input Area */}
-      <div className="flex flex-col w-full max-w-xl md:max-w-3xl bg-white rounded-xl p-3 md:p-4 shadow-lg mx-auto mb-3 md:mb-4">
-        <form onSubmit={handleQuestionSubmit} className="flex flex-col space-y-3 md:space-y-4">
-          {selectedFile && (
-            <FileAttachment 
-              file={selectedFile}
-              onRemove={handleRemoveFile}
-            />
-          )}
+    {/* User Input Area - Fixed at bottom */}
+    <div className="fixed bottom-0 left-0 right-0 z-10 p-3 md:p-4">
+      <div className="max-w-xl md:max-w-3xl mx-auto">
+        <form onSubmit={handleQuestionSubmit} className="flex flex-col space-y-3 md:space-y-4 bg-white rounded-xl p-3 md:p-4 shadow-lg">
           <textarea
             ref={textareaRef}
             className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none overflow-hidden text-sm md:text-base"
@@ -955,28 +926,20 @@ try {
           />
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2 md:space-x-4">
-              {/* Web Icon */}
-              <button
-                type="button"
-                onClick={() => setSelectedButton("search")}
-                className={`flex items-center px-3 py-1 md:px-4 md:py-2 rounded-full transition text-xs md:text-base ${
-                  selectedButton === "search" ? "bg-blue-100" : "bg-gray-100"
-                } text-gray-700`}
-              >
-                <Globe size={16} className="mr-1 md:mr-2 md:w-5 md:h-5" />
-                Search
-              </button>
+              {/* Mic Icon */}
+                          <button
+                            type="button"
+                            onClick={() => navigate("/chat/kiza-agent")}
+                            className="flex items-center px-3 py-1 rounded-full transition text-xs md:text-sm bg-gray-100 text-gray-700 ml-2"
+                            title="Voice Agent"
+                          >
+                            <Mic size={18} className="mr-1" />
+                            Voice Agent
+                          </button>
             </div>
 
             <div className="flex justify-end space-x-2 md:space-x-4">
-              {/* Model Selection Button */}
-              <button
-                type="button"
-                onClick={() => setShowModelModal(true)}
-                className="bg-gray-100 text-gray-700 px-3 py-1 md:px-4 md:py-2 rounded-lg hover:bg-gray-200 transition text-xs md:text-base"
-              >
-                {getModelDisplayName()}
-              </button>
+              
 
               {/* Send Button */}
               <button
@@ -994,21 +957,22 @@ try {
           </div>
         </form>
       </div>
-
-      {/* Model Selection Modal */}
-      <ModelSelectionModal
-        isOpen={showModelModal}
-        onClose={() => setShowModelModal(false)}
-        selectedModel={model}
-        onSelectModel={handleModelSelect}
-      />
-
-      {/* Scroll to bottom button */}
-      {showScrollButton && (
-        <div className="fixed right-4 md:right-8 bottom-24 md:bottom-28">
-          <ScrollToBottomButton onClick={scrollToBottom} />
-        </div>
-      )}
     </div>
-  )
+
+    {/* Model Selection Modal */}
+    <ModelSelectionModal
+      isOpen={showModelModal}
+      onClose={() => setShowModelModal(false)}
+      selectedModel={model}
+      onSelectModel={handleModelSelect}
+    />
+
+    {/* Scroll to bottom button */}
+    {showScrollButton && (
+      <div className="fixed right-4 md:right-8 bottom-24 md:bottom-28 z-20">
+        <ScrollToBottomButton onClick={scrollToBottom} />
+      </div>
+    )}
+  </div>
+)
 }

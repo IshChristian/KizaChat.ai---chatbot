@@ -8,6 +8,7 @@ import Tc from './pages/terms&conditional';
 import Forgot from './pages/forgotpassword';
 import Register from './pages/register';
 import Dashboard from './layouts/dashboard';
+import VoiceAgent from './pages/voice_agent';
 
 function WithDashboard(Component) {
   return (
@@ -25,6 +26,8 @@ export default function App() {
           {/* Routes inside Dashboard */}
           <Route path="/" element={WithDashboard(ChatInterface)} />
           <Route path="/chat/:id" element={WithDashboard(Messages)} />
+          <Route path="/chat/kiza-agent" element={WithDashboard(VoiceAgent)} />
+
 
           {/* Public Routes (No Dashboard Layout) */}
           <Route path="/login" element={<Login />} />
