@@ -1,7 +1,78 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Send, Globe } from "lucide-react"
+import { Send, Globe, Edit, Copy, CheckCheck, ThumbsUp, ThumbsDown } from "lucide-react"
+import { marked } from "marked"
+import axios from "axios"
+
+const TOGETHER_AI_API_KEY = import.meta.env.VITE_TOGETHER_AI_API_KEY
+const DEFAULT_MODEL = 'meta-llama/Llama-Vision-Free';
+// const DEFAULT_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free';
+
+
+async function generateText(prompt, model, options = {}) {
+  try {
+    if (!prompt || typeof prompt !== 'string') throw new Error('Valid prompt is required');
+    const modelToUse = model || DEFAULT_MODEL;
+    const requestOptions = {
+      temperature: options.temperature || 0.7,
+      max_tokens: options.max_tokens || 1024,
+      stream: !!options.stream,
+      ...options.additionalParams
+    };
+    const apiUrl = "https://api.together.xyz/v1/chat/completions";
+    const response = await axios({
+      method: 'POST',
+      url: apiUrl,
+      headers: {
+        'Authorization': `Bearer ${TOGETHER_AI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      data: {
+        model: modelToUse,
+        messages: [{ role: "user", content: prompt }],
+        ...requestOptions
+      },
+      responseType: options.stream ? 'stream' : 'json',
+      timeout: 30000,
+    });
+    if (options.stream) return response.data;
+    return response.data.choices?.[0]?.message?.content || "No response generated";
+  } catch (error) {
+    const statusCode = error.response?.status;
+    const errorMessage = error.response?.data?.error?.message || error.message;
+    if (statusCode === 429) throw new Error('Rate limit exceeded. Please try again later.');
+    if (statusCode === 401 || statusCode === 403) throw new Error('API authentication error. Please check your API key.');
+    if (statusCode >= 500) throw new Error('Together AI service is currently unavailable. Please try again later.');
+    throw new Error(`AI processing error: ${errorMessage}`);
+  }
+}
+
+const translateText = async (text, sourceLang, targetLang) => {
+  const url = 'https://google-translator9.p.rapidapi.com/v2';
+  const options = {
+    method: 'POST',
+    headers: {
+      'x-rapidapi-key': 'd9792031b0msh2f79f6fcf79c333p1790b2jsn12ebf9a28b1b',
+      'x-rapidapi-host': 'google-translator9.p.rapidapi.com',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      q: text,
+      source: sourceLang,
+      target: targetLang,
+      format: 'text'
+    })
+  };
+  try {
+    const response = await fetch(url, options);
+    const result = await response.json();
+    return result.data.translations[0].translatedText;
+  } catch (error) {
+    console.error('Translation error:', error);
+    return text;
+  }
+};
 
 const VoiceAgent = () => {
   // Core state
@@ -12,6 +83,8 @@ const VoiceAgent = () => {
   const [hasGreeted, setHasGreeted] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState("en")
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
+  const [showConversation, setShowConversation] = useState(false)
+  const [messages, setMessages] = useState([]) // {role: "user"|"bot", content: string}
 
   // Refs
   const textInputRef = useRef(null)
@@ -75,59 +148,55 @@ const VoiceAgent = () => {
     }
   }
 
+  // Add message to conversation
+  const addMessage = (role, content) => {
+    setMessages((prev) => [...prev, { role, content }])
+  }
+
+  // Update sendTextMessage and handleAIResponse to store messages
+  const sendTextMessage = async () => {
+    if (inputText.trim()) {
+      const message = inputText.trim()
+      addMessage("user", message)
+      setInputText("")
+      await handleAIResponse(message)
+    }
+  }
+
   const handleAIResponse = async (userMessage = "") => {
     try {
-      setIsSpeaking(true)
+      setIsSpeaking(true);
 
-      // Call RapidAPI ChatGPT endpoint
-      const response = await fetch("https://chat-gpt-all-models.p.rapidapi.com/chat/completions", {
-        method: "POST",
-        headers: {
-          "x-rapidapi-key": "d9792031b0msh2f79f6fcf79c333p1790b2jsn12ebf9a28b1b",
-          "x-rapidapi-host": "chat-gpt-all-models.p.rapidapi.com",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content:
-                selectedLanguage === "en"
-                  ? "You are a helpful AI assistant. Keep responses conversational and concise."
-                  : "Uri umufasha wa AI ufite ubushobozi. Komeza ibisubizo mu buryo bwo kuganira kandi buke.",
-            },
-            {
-              role: "user",
-              content: userMessage,
-            },
-          ],
-        }),
-      })
+      // Get AI response in English
+      const aiResponseEn = await generateText(
+        userMessage,
+        DEFAULT_MODEL,
+        { temperature: 0.7, max_tokens: 1024 }
+      );
 
-      if (response.ok) {
-        const result = await response.json()
-        const aiResponse =
-          result.choices?.[0]?.message?.content ||
-          (selectedLanguage === "en"
-            ? "I didn't get a response. Please try again."
-            : "Sinabonye igisubizo. Ongera ugerageze.")
+      let finalResponse = aiResponseEn;
 
-        speakText(aiResponse)
-      } else {
-        const errorMessage =
-          selectedLanguage === "en"
-            ? "I'm having trouble generating a response right now."
-            : "Mfite ikibazo cyo gutanga igisubizo ubu."
-        speakText(errorMessage)
+      // Only translate if needed
+      if (selectedLanguage === "fr") {
+        finalResponse = await translateText(aiResponseEn, "en", "fr");
+      } else if (selectedLanguage === "rw") {
+        finalResponse = await translateText(aiResponseEn, "en", "rw");
+      } else if (selectedLanguage !== "en") {
+        // For any other language, translate to Kinyarwanda
+        finalResponse = await translateText(aiResponseEn, "en", "rw");
       }
+
+      // Add and speak immediately
+      addMessage("bot", finalResponse);
+      speakText(finalResponse);
     } catch (error) {
-      console.error("Error handling AI response:", error)
+      console.error("Error handling AI response:", error);
       const errorMessage =
         selectedLanguage === "en"
-          ? "I encountered an error, but I'm still here to help you!"
-          : "Nahuye n'ikosa, ariko nkiri hano kugufasha!"
-      speakText(errorMessage)
+          ? error.message || "I encountered an error, but I'm still here to help you!"
+          : "Nahuye n'ikosa, ariko nkiri hano kugufasha!";
+      addMessage("bot", errorMessage);
+      speakText(errorMessage);
     }
   }
 
@@ -197,181 +266,242 @@ const VoiceAgent = () => {
     }
   }
 
-  const sendTextMessage = async () => {
-    if (inputText.trim()) {
-      const message = inputText.trim()
-      setInputText("")
-      await handleAIResponse(message)
-    }
-  }
-
   const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      sendTextMessage()
-    }
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendTextMessage();
+  }
+};
+
+
+  // Message bubble component
+  const MessageBubble = ({ msg }) => {
+    const isUser = msg.role === "user"
+    const content = isUser
+      ? msg.content
+      : <span dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) }} />
+
+    return (
+      <div className={`flex ${isUser ? "justify-end" : "justify-start"} w-full my-2 px-2 md:px-4`}>
+        {!isUser ? (
+          <div className="mr-2 md:mr-3 flex-shrink-0">
+            <img
+              src="../../png/logo-gorilla.png"
+              alt="Avatar"
+              className="w-8 h-8 md:w-10 md:h-10 rounded-full"
+            />
+          </div>
+        ) : (
+          <div className="ml-2 md:ml-3 flex-shrink-0">
+            <img
+              src="../../png/user-avatar.png" // <-- Add a user avatar if you want
+              alt="User"
+              className="w-8 h-8 md:w-10 md:h-10 rounded-full"
+            />
+          </div>
+        )}
+        <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} max-w-[80%] md:max-w-[85%]`}>
+          <div
+            className={`p-3 md:p-4 rounded-2xl ${
+              isUser
+                ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-sm rounded-br-none"
+                : "text-gray-800"
+            }`}
+          >
+            <div className={`markdown-content text-sm md:text-base ${isUser ? "text-white" : "text-gray-800"}`}>
+              {content}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 pb-24 md:pb-32">
-      {/* Language Selector */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
-        <div className="relative">
-          <button
-            onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-            className="flex items-center space-x-2 px-3 py-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-gray-200"
-          >
-            <Globe className="w-4 h-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">
-              {languages.find((lang) => lang.code === selectedLanguage)?.flag}{" "}
-              {languages.find((lang) => lang.code === selectedLanguage)?.name}
-            </span>
-          </button>
-
-          {showLanguageDropdown && (
-            <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50 min-w-[160px]">
-              {languages.map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => {
-                    setSelectedLanguage(lang.code)
-                    setShowLanguageDropdown(false)
-                    setHasGreeted(false) // Reset greeting for new language
-                  }}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
-                    selectedLanguage === lang.code ? "bg-blue-50 text-blue-700" : "text-gray-700"
-                  }`}
-                >
-                  <span className="text-lg">{lang.flag}</span>
-                  <span className="font-medium">{lang.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Toggle Button */}
+      <div className="fixed top-4 left-4 z-20">
+        <button
+          onClick={() => setShowConversation((v) => !v)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+        >
+          {showConversation ? "View Agent" : "View Conversation"}
+        </button>
       </div>
 
-      {/* Main Content */}
-      <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl mx-auto">
-        {/* Central Circle */}
-        <div className="relative mb-8 sm:mb-12">
-          <div
-            className={`relative w-48 h-48 sm:w-64 sm:h-64 lg:w-80 lg:h-80 rounded-full transition-all duration-500 cursor-pointer border-4 ${
-              isSpeaking
-                ? "bg-gradient-conic from-blue-400 via-teal-400 to-blue-600 border-white/50"
-                : isListening
-                  ? "bg-gradient-conic from-green-400 via-blue-400 to-teal-500 animate-pulse border-white/50"
-                  : "bg-gradient-conic from-gray-300 via-gray-400 to-gray-500 border-gray-400"
-            }`}
-            onClick={isSpeaking ? interruptSpeaking : isListening ? stopListening : startListening}
-          >
-            {/* Inner circle with radial pattern */}
-            <div className="absolute inset-4 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <div className="text-center px-4">
-                {isSpeaking ? (
-                  <div className="bg-white/90 backdrop-blur-sm px-4 py-2 sm:px-6 sm:py-3 rounded-full shadow-lg">
-                    <span className="text-gray-800 font-medium text-sm sm:text-base">
-                      {selectedLanguage === "en" ? "Talk to interrupt" : "Vuga ukandagize"}
-                    </span>
+      {/* Conversation View */}
+      {showConversation ? (
+        <div className="w-full max-w-2xl mx-auto mt-16 mb-32">
+          <div className="flex flex-col">
+            {messages.length === 0 ? (
+              <div className="text-center text-gray-400 mt-10">No conversation yet.</div>
+            ) : (
+              messages.map((msg, idx) => <MessageBubble key={idx} msg={msg} />)
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Language Selector */}
+          <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+            <div className="relative">
+              <button
+                onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                className="flex items-center space-x-2 px-3 py-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-gray-200"
+              >
+                <Globe className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">
+                  {languages.find((lang) => lang.code === selectedLanguage)?.flag}{" "}
+                  {languages.find((lang) => lang.code === selectedLanguage)?.name}
+                </span>
+              </button>
+
+              {showLanguageDropdown && (
+                <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50 min-w-[160px]">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => {
+                        setSelectedLanguage(lang.code)
+                        setShowLanguageDropdown(false)
+                        setHasGreeted(false) // Reset greeting for new language
+                      }}
+                      className={`w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
+                        selectedLanguage === lang.code ? "bg-blue-50 text-blue-700" : "text-gray-700"
+                      }`}
+                    >
+                      <span className="text-lg">{lang.flag}</span>
+                      <span className="font-medium">{lang.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex flex-col items-center justify-center flex-1 w-full max-w-2xl mx-auto">
+            {/* Central Circle */}
+            <div className="relative mb-8 sm:mb-12">
+              <div
+                className={`relative w-48 h-48 sm:w-64 sm:h-64 lg:w-80 lg:h-80 rounded-full transition-all duration-500 cursor-pointer border-4 ${
+                  isSpeaking
+                    ? "bg-gradient-conic from-blue-400 via-teal-400 to-blue-600 border-white/50"
+                    : isListening
+                      ? "bg-gradient-conic from-green-400 via-blue-400 to-teal-500 animate-pulse border-white/50"
+                      : "bg-gradient-conic from-gray-300 via-gray-400 to-gray-500 border-gray-400"
+                }`}
+                onClick={isSpeaking ? interruptSpeaking : isListening ? stopListening : startListening}
+              >
+                {/* Inner circle with radial pattern */}
+                <div className="absolute inset-4 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <div className="text-center px-4">
+                    {isSpeaking ? (
+                      <div className="bg-white/90 backdrop-blur-sm px-4 py-2 sm:px-6 sm:py-3 rounded-full shadow-lg">
+                        <span className="text-gray-800 font-medium text-sm sm:text-base">
+                          {selectedLanguage === "en" ? "Talk to interrupt" : "Vuga ukandagize"}
+                        </span>
+                      </div>
+                    ) : isListening ? (
+                      <div className="bg-white/90 backdrop-blur-sm px-4 py-2 sm:px-6 sm:py-3 rounded-full shadow-lg">
+                        <span className="text-gray-800 font-medium text-sm sm:text-base">
+                          {selectedLanguage === "en" ? "Listening..." : "Ndumva..."}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="bg-white/90 backdrop-blur-sm px-4 py-2 sm:px-6 sm:py-3 rounded-full shadow-lg">
+                        <span className="text-gray-800 font-medium text-sm sm:text-base">
+                          {selectedLanguage === "en" ? "Tap to speak" : "Kanda uvuge"}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                ) : isListening ? (
-                  <div className="bg-white/90 backdrop-blur-sm px-4 py-2 sm:px-6 sm:py-3 rounded-full shadow-lg">
-                    <span className="text-gray-800 font-medium text-sm sm:text-base">
-                      {selectedLanguage === "en" ? "Listening..." : "Ndumva..."}
-                    </span>
+                </div>
+
+                {/* Speaking waves animation */}
+                {isSpeaking && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex space-x-1">
+                      {[...Array(8)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1 bg-white/60 rounded-full animate-bounce"
+                          style={{
+                            height: `${Math.random() * 20 + 10}px`,
+                            animationDelay: `${i * 0.1}s`,
+                            animationDuration: "0.6s",
+                          }}
+                        />
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <div className="bg-white/90 backdrop-blur-sm px-4 py-2 sm:px-6 sm:py-3 rounded-full shadow-lg">
-                    <span className="text-gray-800 font-medium text-sm sm:text-base">
-                      {selectedLanguage === "en" ? "Tap to speak" : "Kanda uvuge"}
-                    </span>
-                  </div>
+                )}
+
+                {/* Pulsing rings for listening state only */}
+                {isListening && (
+                  <>
+                    <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-ping"></div>
+                    <div className="absolute -inset-2 rounded-full border-2 border-white/20 animate-pulse"></div>
+                  </>
                 )}
               </div>
             </div>
 
-            {/* Speaking waves animation */}
-            {isSpeaking && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex space-x-1">
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-1 bg-white/60 rounded-full animate-bounce"
-                      style={{
-                        height: `${Math.random() * 20 + 10}px`,
-                        animationDelay: `${i * 0.1}s`,
-                        animationDuration: "0.6s",
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Pulsing rings for listening state only */}
-            {isListening && (
-              <>
-                <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-ping"></div>
-                <div className="absolute -inset-2 rounded-full border-2 border-white/20 animate-pulse"></div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Status Text */}
-        {/* <div className="text-center mb-8 sm:mb-12 px-4">
+            {/* Status Text */}
+            {/* <div className="text-center mb-8 sm:mb-12 px-4">
           <p className="text-gray-600 text-sm sm:text-base">
             {selectedLanguage === "en"
               ? "In-development calls are 50% off."
               : "Amahamagara yo mu iterambere agabanuka 50%."}
           </p>
         </div> */}
-      </div>
+          </div>
 
-      {/* Fixed Bottom Input */}
-      <div className="fixed bottom-0 left-0 right-0 z-10 p-3 md:p-4">
-        <div className="max-w-md md:max-w-3xl mx-auto">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              sendTextMessage()
-            }}
-            className="flex flex-col space-y-3 md:space-y-4 bg-white rounded-xl p-3 md:p-4 shadow-lg"
-          >
-            <textarea
-              ref={textInputRef}
-              className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none overflow-hidden text-sm md:text-base"
-              placeholder={selectedLanguage === "en" ? "Ask whatever you want..." : "Baza icyo ushaka..."}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyPress={handleKeyPress}
-              rows={1}
-              maxLength={1000}
-              style={{ minHeight: "24px" }}
-            />
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="flex items-center justify-center bg-gradient-to-r from-purple-600 to-blue-500 text-white w-10 h-10 md:w-12 md:h-12 rounded-full hover:from-purple-700 hover:to-blue-600 transition shadow-md"
-                disabled={!inputText.trim()}
+          {/* Fixed Bottom Input */}
+          <div className="fixed bottom-0 left-0 right-0 z-10 p-3 md:p-4">
+            <div className="max-w-md md:max-w-3xl mx-auto">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  sendTextMessage()
+                }}
+                className="flex flex-col space-y-3 md:space-y-4 bg-white rounded-xl p-3 md:p-4 shadow-lg"
               >
-                {!inputText.trim() ? (
-                  <div className="w-3 h-3 md:w-4 md:h-4 bg-white rounded-full animate-pulse"></div>
-                ) : (
-                  <Send size={16} className="md:w-5 md:h-5" />
-                )}
-              </button>
+                <textarea
+                  ref={textInputRef}
+                  className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none overflow-hidden text-sm md:text-base"
+                  placeholder={selectedLanguage === "en" ? "Ask whatever you want..." : "Baza icyo ushaka..."}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  rows={1}
+                  maxLength={1000}
+                  style={{ minHeight: "24px" }}
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="flex items-center justify-center bg-gradient-to-r from-purple-600 to-blue-500 text-white w-10 h-10 md:w-12 md:h-12 rounded-full hover:from-purple-700 hover:to-blue-600 transition shadow-md"
+                    disabled={!inputText.trim()}
+                  >
+                    {!inputText.trim() ? (
+                      <div className="w-3 h-3 md:w-4 md:h-4 bg-white rounded-full animate-pulse"></div>
+                    ) : (
+                      <Send size={16} className="md:w-5 md:h-5" />
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
-      </div>
+          </div>
 
-      <style jsx>{`
-        .bg-gradient-conic {
-          background: conic-gradient(var(--tw-gradient-stops));
-        }
-      `}</style>
+          <style jsx>{`
+            .bg-gradient-conic {
+              background: conic-gradient(var(--tw-gradient-stops));
+            }
+          `}</style>
+        </>
+      )}
     </div>
   )
 }
