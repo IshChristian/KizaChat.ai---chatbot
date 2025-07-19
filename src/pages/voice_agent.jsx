@@ -1,10 +1,13 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Send, Globe, Edit, Copy, CheckCheck, ThumbsUp, ThumbsDown } from "lucide-react"
+import { Plus,Send, Globe, Edit, Copy, CheckCheck, ThumbsUp, ThumbsDown, Paperclip, Sparkles, MessageCircle } from "lucide-react"
 import { marked } from "marked"
 import axios from "axios"
 
+import * as pdfjsLib from "pdfjs-dist/build/pdf";
+import { GlobalWorkerOptions } from "pdfjs-dist/build/pdf";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.mjs";
 const TOGETHER_AI_API_KEY = import.meta.env.VITE_TOGETHER_AI_API_KEY
 const DEFAULT_MODEL = 'meta-llama/Llama-Vision-Free';
 // const DEFAULT_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free';
@@ -41,7 +44,7 @@ async function generateText(prompt, model, options = {}) {
   } catch (error) {
     const statusCode = error.response?.status;
     const errorMessage = error.response?.data?.error?.message || error.message;
-    if (statusCode === 429) throw new Error('Rate limit exceeded. Please try again later.');
+    if (statusCode === 429) throw new Error('Rate limit exceeded. Please check your network and try again later.');
     if (statusCode === 401 || statusCode === 403) throw new Error('API authentication error. Please check your API key.');
     if (statusCode >= 500) throw new Error('Together AI service is currently unavailable. Please try again later.');
     throw new Error(`AI processing error: ${errorMessage}`);
@@ -86,6 +89,11 @@ const VoiceAgent = () => {
   const [showConversation, setShowConversation] = useState(false)
   const [messages, setMessages] = useState([]) // {role: "user"|"bot", content: string}
 
+  const [uploadedText, setUploadedText] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [filePromptMode, setFilePromptMode] = useState(""); // "summary" or "qna"
+  const [userFileQuestion, setUserFileQuestion] = useState("");
+
   // Refs
   const textInputRef = useRef(null)
   const recognitionRef = useRef(null)
@@ -102,8 +110,8 @@ const VoiceAgent = () => {
       setTimeout(() => {
         const greeting =
           selectedLanguage === "en"
-            ? "Hello! How are you doing today? I'm your AI assistant, ready to help you with anything you need."
-            : "Muraho! Amakuru yawe? Ndi umufasha wa AI, niteguye kugufasha ibintu byose ukeneye."
+            ? "Hello! How are you doing today? I'm your kizachat AI assistant, ready to help you with anything you need."
+            : "Muraho! Amakuru yawe? Ndi umufasha wa kizachat AI, niteguye kugufasha ibintu byose ukeneye."
 
         speakText(greeting)
         setHasGreeted(true)
@@ -317,17 +325,46 @@ const VoiceAgent = () => {
     )
   }
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setFileName(file.name);
+
+    if (file.type === "application/pdf") {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item) => item.str).join(" ") + "\n";
+      }
+      setUploadedText(text);
+    } else if (file.type.startsWith("text/")) {
+      const reader = new FileReader();
+      reader.onload = (event) => setUploadedText(event.target.result);
+      reader.readAsText(file);
+    } else {
+      alert("Please upload a text or PDF file.");
+      setUploadedText("");
+      setFileName("");
+    }
+    setFilePromptMode(""); // Reset mode on new upload
+    setUserFileQuestion("");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 pb-24 md:pb-32">
       {/* Toggle Button */}
-      <div className="fixed top-4 left-4 z-20">
+      {/* <div className="fixed top-4 left-4 z-20">
         <button
           onClick={() => setShowConversation((v) => !v)}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
         >
           {showConversation ? "View Agent" : "View Conversation"}
         </button>
-      </div>
+      </div> */}
 
       {/* Conversation View */}
       {showConversation ? (
@@ -467,29 +504,84 @@ const VoiceAgent = () => {
                 }}
                 className="flex flex-col space-y-3 md:space-y-4 bg-white rounded-xl p-3 md:p-4 shadow-lg"
               >
+                {/* Show file name and icon at top if file is uploaded */}
+                {uploadedText && fileName && (
+                  <div className="flex items-center gap-2 mb-2 px-1 py-1 bg-blue-50 rounded">
+                    <Paperclip size={18} className="text-blue-700" />
+                    <span className="text-xs text-blue-700 font-medium truncate">{fileName}</span>
+                  </div>
+                )}
+
+                {/* Textarea for both summary and Q&A */}
                 <textarea
                   ref={textInputRef}
-                  className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none overflow-hidden text-sm md:text-base"
-                  placeholder={selectedLanguage === "en" ? "Ask whatever you want..." : "Baza icyo ushaka..."}
+                  className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none overflow-hidden text-sm md:text-base pb-2 pt-2"
+                  placeholder={
+                    uploadedText
+                      ? "Type your question about the file, or leave blank to summarize..."
+                      : selectedLanguage === "en"
+                        ? "Ask whatever you want..."
+                        : "Baza icyo ushaka..."
+                  }
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyPress={handleKeyPress}
                   rows={1}
                   maxLength={1000}
-                  style={{ minHeight: "24px" }}
+                  style={{ minHeight: "48px" }}
                 />
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    className="flex items-center justify-center bg-gradient-to-r from-purple-600 to-blue-500 text-white w-10 h-10 md:w-12 md:h-12 rounded-full hover:from-purple-700 hover:to-blue-600 transition shadow-md"
-                    disabled={!inputText.trim()}
-                  >
-                    {!inputText.trim() ? (
-                      <div className="w-3 h-3 md:w-4 md:h-4 bg-white rounded-full animate-pulse"></div>
-                    ) : (
-                      <Send size={16} className="md:w-5 md:h-5" />
-                    )}
-                  </button>
+
+                {/* Bottom row: upload left, action right */}
+                <div className="flex items-center justify-between mt-1">
+                  {/* File Upload Button - left */}
+                  <label className="cursor-pointer flex items-center px-3 py-1 rounded-full transition text-xs md:text-sm bg-gray-100 text-gray-700 ml-2">
+                    <Plus size={18} />
+                    <span className="text-xs font-medium">Upload File</span>
+                    <input
+                      type="file"
+                      accept=".txt,.md,.csv,.json,.log,.pdf"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {/* Action Buttons - right */}
+                  {uploadedText ? (
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg shadow hover:from-blue-600 hover:to-blue-800 transition-all"
+                      onClick={async () => {
+                        addMessage("user", `[File uploaded: ${fileName}]`);
+                        let prompt = inputText.trim()
+                          ? `Given the following file content:\n\n${uploadedText}\n\nAnswer this question: ${inputText.trim()}`
+                          : `Summarize the following file content:\n\n${uploadedText}`;
+                        addMessage("user", prompt);
+                        await handleAIResponse(prompt);
+                        setUploadedText("");
+                        setFileName("");
+                        setInputText("");
+                      }}
+                    >
+                      {inputText.trim() ? (
+                        <>
+                          <MessageCircle size={16} /> Ask AI
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={16} /> Summarize
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      className="flex items-center justify-center bg-gradient-to-r from-purple-600 to-blue-500 text-white w-10 h-10 md:w-12 md:h-12 rounded-full hover:from-purple-700 hover:to-blue-600 transition shadow-md"
+                      disabled={!inputText.trim()}
+                      aria-label="Send"
+                    >
+                      <Send size={20} />
+                    </button>
+                  )}
                 </div>
               </form>
             </div>

@@ -4,6 +4,7 @@ import { Mic,Send, ThumbsUp, ThumbsDown, Copy, Edit, Check, ArrowDown, CheckChec
 import DOMPurify from "dompurify"
 import { marked } from "marked"
 import axios from "axios"
+import Cookies from "js-cookie"
 
 
 
@@ -110,7 +111,6 @@ const markdownStyles = `
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
-}
 `
 
 const ScrollToBottomButton = ({ onClick }) => (
@@ -342,7 +342,7 @@ const ChatMessage = ({ message, isUser, onEdit, onSendMessage, isNewMessage }) =
           />
         </div>
       )}
-      
+
       <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} max-w-[80%] md:max-w-[85%]`}>
         <div
           className={`p-3 md:p-4 rounded-2xl ${
@@ -529,10 +529,12 @@ export default function ChatPage() {
   }, [])
 
   useEffect(() => {
-    const cookies = document.cookie.split("; ")
-    const emailCookie = cookies.find((row) => row.startsWith("email="))
+    // Use js-cookie to get the email cookie
+    const emailCookie = Cookies.get("email")
     if (emailCookie) {
-      setEmail(emailCookie.split("=")[1])
+      setEmail(emailCookie)
+    } else {
+      setEmail("guest@example.com")
     }
   }, [])
 
@@ -748,112 +750,101 @@ export default function ChatPage() {
   }
 
   const handleQuestionSubmit = async (e) => {
-    e.preventDefault()
-    if ((question.trim() === "" && !selectedFile) || isResponding) return
+  e.preventDefault()
+  if ((question.trim() === "" && !selectedFile) || isResponding) return
 
-    const userMessageId = `user-${Date.now()}`
-    const newUserMessage = {
-      id: userMessageId,
-      content: question + (selectedFile ? `\n\nAttached file: ${selectedFile.name}` : ""),
-      isUser: true,
-    }
+  const userMessageId = `user-${Date.now()}`
+  const newUserMessage = {
+    id: userMessageId,
+    content: question + (selectedFile ? `\n\nAttached file: ${selectedFile.name}` : ""),
+    isUser: true,
+  }
 
-    setMessages((prev) => [...prev, newUserMessage])
-    setQuestion("")
-    setTextareaRows(1)
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-    }
-    setIsResponding(true)
+  setMessages((prev) => [...prev, newUserMessage])
+  setQuestion("")
+  setTextareaRows(1)
+  if (textareaRef.current) {
+    textareaRef.current.style.height = 'auto'
+  }
+  setIsResponding(true)
 
-    // Show uploading state if there's a file
-    if (selectedFile) {
-      setFileUploadState('uploading')
-      // Simulate file upload delay (in real app, this would be an actual upload)
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setFileUploadState('parsing')
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setFileUploadState(null)
-      setSelectedFile(null)
-    }
-
-    const tempTypingId = `ai-typing-${Date.now()}`
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: tempTypingId,
-        content: "", // Empty content that will be filled by typing effect
-        isUser: false,
-        isTyping: true,
-      },
-    ])
-
-    // Replace the axios.post section in handleQuestionSubmit with this:
-try {
-  let requestData;
-  let headers = {};
-  
+  // Show uploading state if there's a file
   if (selectedFile) {
-    // Using FormData for file uploads
-    const formData = new FormData();
-    formData.append('chatID', chatID || '');
-    formData.append('user_email', email || "Guest");
-    formData.append('question', question);
-    formData.append('model', model);
-    formData.append('file', selectedFile);
-    
-    requestData = formData;
-    headers = {
-      'Content-Type': 'multipart/form-data'
-    };
-  } else {
-    // Using JSON for regular requests
-    requestData = {
-      chatID: chatID || '',
-      user_email: email || "Guest",
-      question: question,
-      model: model
-    };
+    setFileUploadState('uploading')
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    setFileUploadState('parsing')
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    setFileUploadState(null)
+    setSelectedFile(null)
   }
-  
-  const response = await axios.post(
-    `${BASE_URL}/chat/ask`, 
-    requestData,
-    { headers }
-  );
 
-  // const response = await axios.post(
-  //   "${BASE_URL}/chat/ask", 
-  //   requestData,
-  //   { headers }
-  // );
-  
-  if (response.data?.response || response.data?.data?.response) {
-    const aiResponse = response.data.response || response.data.data.response;
-    setMessages(prev => prev.map(msg => 
-      msg.id === tempTypingId 
-        ? { ...msg, content: aiResponse, isTyping: false, isEdited: false }
-        : msg
-    ));
-    setLastMessageId(tempTypingId);
-  }
-} catch (error) {
-  console.error("Error:", error);
-  setMessages(prev => prev.map(msg => 
-    msg.id === tempTypingId 
-      ? { 
-          ...msg, 
-          content: "Failed to send message. Please try again.",
-          isTyping: false,
-          isEdited: true 
-        }
-      : msg
-  ));
-} finally {
-      setIsResponding(false)
-      setTimeout(scrollToBottom, 100)
+  const tempTypingId = `ai-typing-${Date.now()}`
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: tempTypingId,
+      content: "",
+      isUser: false,
+      isTyping: true,
+    },
+  ])
+
+  try {
+    let requestData;
+    let headers = {};
+    // Always use a valid email
+    const userEmail = email && email.trim() ? email : "guest@example.com";
+
+    if (selectedFile) {
+      const formData = new FormData();
+      formData.append('user_email', userEmail); // append email first!
+      formData.append('chatID', chatID || '');
+      formData.append('question', question);
+      formData.append('model', model);
+      formData.append('file', selectedFile);
+
+      requestData = formData;
+      headers = {}; // Let browser set Content-Type!
+    } else {
+      requestData = {
+        chatID: chatID || '',
+        user_email: userEmail,
+        question: question,
+        model: model
+      };
     }
+    const response = await axios.post(
+      `${BASE_URL}/chat/ask`,
+      requestData,
+      { headers }
+    );
+
+    if (response.data?.response || response.data?.data?.response) {
+      const aiResponse = response.data.response || response.data.data.response;
+      setMessages(prev => prev.map(msg =>
+        msg.id === tempTypingId
+          ? { ...msg, content: aiResponse, isTyping: false, isEdited: false }
+          : msg
+      ));
+      setLastMessageId(tempTypingId);
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    setMessages(prev => prev.map(msg =>
+  msg.id === tempTypingId
+    ? {
+        ...msg,
+        content: "server is busy.",
+        isTyping: false,
+        isEdited: true
+      }
+    : msg
+));
+  } finally {
+    setIsResponding(false)
+    setTimeout(scrollToBottom, 100)
   }
+}
 
   const handleModelSelect = (selectedModel) => {
     setModel(selectedModel)
@@ -914,6 +905,22 @@ try {
     <div className="fixed bottom-0 left-0 right-0 z-10 p-3 md:p-4">
       <div className="max-w-xl md:max-w-3xl mx-auto">
         <form onSubmit={handleQuestionSubmit} className="flex flex-col space-y-3 md:space-y-4 bg-white rounded-xl p-3 md:p-4 shadow-lg">
+          {/* Show file name and icon if file is selected */}
+          {selectedFile && (
+            <div className="flex items-center gap-2 mb-2 px-1 py-1 bg-blue-50 rounded">
+              <Paperclip size={18} className="text-blue-700" />
+              <span className="text-xs text-blue-700 font-medium truncate">{selectedFile.name}</span>
+              <button
+                type="button"
+                onClick={handleRemoveFile}
+                className="ml-2 text-gray-400 hover:text-red-500"
+                title="Remove file"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
           <textarea
             ref={textareaRef}
             className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none overflow-hidden text-sm md:text-base"
@@ -924,8 +931,20 @@ try {
             maxLength={1000}
             style={{ minHeight: '24px' }}
           />
+
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2 md:space-x-4">
+              {/* File Upload Button */}
+              <label className="cursor-pointer flex items-center px-3 py-1 rounded-full transition text-xs md:text-sm bg-gray-100 text-gray-700">
+                <Paperclip size={18} />
+                <span className="text-xs font-medium">Upload</span>
+                <input
+                  type="file"
+                  accept=".txt,.md,.csv,.json,.log,.pdf"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </label>
               {/* Mic Icon */}
                           <button
                             type="button"
@@ -945,7 +964,7 @@ try {
               <button
                 type="submit"
                 className="flex items-center justify-center bg-gradient-to-r from-purple-600 to-blue-500 text-white w-10 h-10 md:w-12 md:h-12 rounded-full hover:from-purple-700 hover:to-blue-600 transition shadow-md"
-                disabled={isResponding}
+                disabled={isResponding || (!question.trim() && !selectedFile)}
               >
                 {isResponding ? (
                   <div className="w-3 h-3 md:w-4 md:h-4 bg-white rounded-full animate-pulse"></div>

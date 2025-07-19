@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Globe, Paperclip, RefreshCcw, List, Mail, FileText, Cpu, Send, X, Mic } from "lucide-react"; // <-- Add Mic
+import { MessageCircle } from "lucide-react";
+import * as pdfjsLib from "pdfjs-dist/build/pdf";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.mjs"; // Make sure this file exists in /public
 
 const suggestionPools = [
   [
@@ -31,6 +35,8 @@ export default function ChatInterface() {
   const [hideSuggestions, setHideSuggestions] = useState(false);
   const [hideHeader, setHideHeader] = useState(false);
   const [selectedButton, setSelectedButton] = useState("");
+  const [uploadedText, setUploadedText] = useState("");
+  const [fileName, setFileName] = useState("");
   const BASE_URL = import.meta.env.VITE_SERVER_API_URL
 
   useEffect(() => {
@@ -44,7 +50,7 @@ export default function ChatInterface() {
 
   const handleQuestionSubmit = async (event) => {
     event.preventDefault();
-    if (!question.trim()) return;
+    if (!question.trim() && !uploadedText) return;
 
     setIsLoading(true);
     setHideSuggestions(true);
@@ -53,10 +59,19 @@ export default function ChatInterface() {
 
     setTimeout(async () => {
       const chatID = generateChatID();
+      let prompt = question.trim();
+
+      // If file uploaded, build the prompt accordingly
+      if (uploadedText) {
+        prompt = question.trim()
+          ? `Given the following file content:\n\n${uploadedText}\n\nAnswer this question: ${question.trim()}`
+          : `Summarize the following file content:\n\n${uploadedText}`;
+      }
+
       try {
         const response = await axios.post(`${BASE_URL}/chat/ask`, {
           user_email: email || "Guest",
-          question,
+          question: prompt,
           chatID,
         });
 
@@ -65,6 +80,11 @@ export default function ChatInterface() {
         }
       } catch (error) {
         console.error("Error submitting question:", error);
+      } finally {
+        setIsLoading(false);
+        setQuestion("");
+        setUploadedText("");
+        setFileName("");
       }
     }, 700);
   };
@@ -72,6 +92,32 @@ export default function ChatInterface() {
   const handleRefreshPrompts = () => {
     const randomPool = Math.floor(Math.random() * suggestionPools.length);
     setSuggestions(suggestionPools[randomPool]);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFileName(file.name);
+
+    if (file.type === "application/pdf") {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item) => item.str).join(" ") + "\n";
+      }
+      setUploadedText(text);
+    } else if (file.type.startsWith("text/")) {
+      const reader = new FileReader();
+      reader.onload = (event) => setUploadedText(event.target.result);
+      reader.readAsText(file);
+    } else {
+      alert("Please upload a text or PDF file.");
+      setUploadedText("");
+      setFileName("");
+    }
   };
 
   return(
@@ -88,9 +134,21 @@ export default function ChatInterface() {
     {/* User Input Area */}
     <div className={`w-full max-w-xl bg-white rounded-xl p-3 md:p-4 shadow-lg ${inputAreaClass} mx-auto mb-2`}>
       <form onSubmit={handleQuestionSubmit} className="flex flex-col space-y-3">
+        {/* Show file name if uploaded */}
+        {uploadedText && fileName && (
+          <div className="flex items-center gap-2 mb-2 px-1 py-1 bg-blue-50 rounded">
+            <Paperclip size={18} className="text-blue-700" />
+            <span className="text-xs text-blue-700 font-medium truncate">{fileName}</span>
+          </div>
+        )}
+
         <textarea
           className="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none resize-none scrollbar-hide text-sm"
-          placeholder="Ask whatever you want..."
+          placeholder={
+            uploadedText
+              ? "Type your question about the file, or leave blank to summarize..."
+              : "Ask whatever you want..."
+          }
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           rows={1}
@@ -112,10 +170,23 @@ export default function ChatInterface() {
           </div>
 
           <div className="flex space-x-2">
-            {/* Send Button */}
+            {/* File Upload Button */}
+            <label className="cursor-pointer flex items-center px-3 py-1 rounded-full transition text-xs md:text-sm bg-gray-100 text-gray-700">
+              <Paperclip size={18} />
+              <span className="text-xs font-medium">Upload</span>
+              <input
+                type="file"
+                accept=".txt,.md,.csv,.json,.log,.pdf"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+
+            {/* Always show Send button */}
             <button
               type="submit"
               className="flex items-center justify-center bg-gradient-to-r from-purple-600 to-blue-500 text-white w-10 h-10 rounded-full hover:from-purple-700 hover:to-blue-600 transition shadow-md"
+              disabled={isLoading || (!question.trim() && !uploadedText)}
             >
               {isLoading ? (
                 <div className="flex space-x-1">
